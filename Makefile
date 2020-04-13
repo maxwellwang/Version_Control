@@ -1,8 +1,8 @@
-all:
+all: client.c server.c
   gcc -o "WTF" client.c; gcc -o "WTFserver" server.c
 
-test: thing.c
-  gcc -o "WTFtest" thing.c
+test: tester.c
+  gcc -o "WTFtest" tester.c
 
 clean:
-  rm WTF; rm WTFserver
+  rm WTF WTFserver WTFtest
