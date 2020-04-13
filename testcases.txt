@@ -1,1 +1,1 @@
-I ./WTFserver 9123
+I echo mario
