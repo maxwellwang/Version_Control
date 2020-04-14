@@ -14,11 +14,13 @@ int size = INITIAL_BUFFER_SIZE;
 int length = 0;
 char* nextBuffer;
 int status;
+char terminator = '~';
+int testCounter = 1;
 
 // functions
 void executeInput(int file, char* buffer, char* head) {
 	status = read(file, &c, 1);
-	while (status && c != '\n') {
+	while (status && c != terminator) {
 		if (status == -1) {
 			if (errno != EINTR) {
 				perror("Error");
@@ -46,18 +48,86 @@ void executeInput(int file, char* buffer, char* head) {
 		length++;
 		status = read(file, &c, 1);
 	}
-	// execute command in buffer
+	// execute command in buffer and insert into testfile
+	char insertPart[] = " > testfile";
+	int i;
+	for (i = 0; i < 11; i++) {
+		if (length + 1 > size) {
+			// double size
+			size *= 2;
+			nextBuffer = (char*) malloc(size);
+			if (!buffer) {
+				printf("Error: Malloc failed\n");
+				exit(EXIT_FAILURE);
+			}
+			memcpy(nextBuffer, buffer, length);
+			free(buffer);
+			buffer = nextBuffer;
+			nextBuffer = NULL;
+			head = buffer + length;
+		}
+		*head = insertPart[i];
+		head++;
+		length++;
+	}
 	system(buffer);
 	// reset everything
 	head = buffer;
 	length = 0;
 	return;
 }
+int matchesOutput(int file, int testfile, char* buffer) {
+	int ret = 1;
+	status = read(file, &c, 1);
+	char c2 = '?';
+	int status2 = read(testfile, &c2, 1);
+	while (status && c != terminator && status2) {
+		if (status == -1) {
+			if (errno != EINTR) {
+				perror("Error");
+				exit(EXIT_FAILURE);
+			}
+			status = read(file, &c, 1);
+			continue;
+		}
+		if (status2 == -1) {
+			if (errno != EINTR) {
+				perror("Error");
+				exit(EXIT_FAILURE);
+			}
+			status2 = read(testfile, &c2, 1);
+			continue;
+		}
+		if (c != c2) {
+			ret = 0; // different char detected
+		}
+		status = read(file, &c, 1);
+		status2 = read(testfile, &c2, 1);
+	}
+	if (status && !status2) {
+		// need to finish reading output in testcases.txt
+		ret = 0;
+		while (status && c != terminator && status2) {
+			if (status == -1) {
+				if (errno != EINTR) {
+					perror("Error");
+					exit(EXIT_FAILURE);
+				}
+				status = read(file, &c, 1);
+				continue;
+			}
+			status = read(file, &c, 1);
+		}
+	}
+	return ret;
+}
+
 int main(int argc, char* argv[]) {
 	int file = open("testcases.txt", O_RDONLY | O_NONBLOCK);
 	char* buffer = (char*) malloc(INITIAL_BUFFER_SIZE);
 	char* head = buffer;
-	if (file == -1) {
+	int testfile = open("testfile", O_RDONLY | O_NONBLOCK);
+	if (file == -1 || testfile == -1) {
 		perror("Error");
 		return EXIT_FAILURE;
 	}
@@ -78,7 +148,18 @@ int main(int argc, char* argv[]) {
 		}
 		if (c == 'I') {
 			// read command terminated by newline and execute
+			read(file, &c, 1); // newline
 			executeInput(file, buffer, head);
+		}
+		if (c == 'O') {
+			// read expected output and compare to buffer
+			read(file, &c, 1); // newline
+			if (matchesOutput(file, testfile, buffer)) {
+				printf("Test %d passed\n", testCounter);
+			} else {
+				printf("Test %d failed\n", testCounter);
+			}
+			testCounter++;
 		}
 		status = read(file, &c, 1);
 	}
