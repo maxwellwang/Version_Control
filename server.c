@@ -4,5 +4,6 @@
 #include <sys/socket.h>
 
 int main(int argc, char* argv[]) {
-  return 0;
+	int sock = socket(AF_INET, SOCK_STREAM, 0);
+	exit(1);
 }

@@ -14,17 +14,18 @@ int size = INITIAL_BUFFER_SIZE;
 int length = 0;
 char* nextBuffer;
 int status;
-char terminator = '~';
+char inputTerminator = '\n';
+char outputTerminator = '$';
 int testCounter = 1;
 
 // functions
 void executeInput(int file, char* buffer, char* head) {
 	status = read(file, &c, 1);
-	while (status && c != terminator) {
+	while (status && c != inputTerminator) {
 		if (status == -1) {
 			if (errno != EINTR) {
 				perror("Error");
-				exit(EXIT_FAILURE);
+				exit(1);
 			}
 			status = read(file, &c, 1);
 			continue;
@@ -35,7 +36,7 @@ void executeInput(int file, char* buffer, char* head) {
 			nextBuffer = (char*) malloc(size);
 			if (!buffer) {
 				printf("Error: Malloc failed\n");
-				exit(EXIT_FAILURE);
+				exit(1);
 			}
 			memcpy(nextBuffer, buffer, length);
 			free(buffer);
@@ -58,7 +59,7 @@ void executeInput(int file, char* buffer, char* head) {
 			nextBuffer = (char*) malloc(size);
 			if (!buffer) {
 				printf("Error: Malloc failed\n");
-				exit(EXIT_FAILURE);
+				exit(1);
 			}
 			memcpy(nextBuffer, buffer, length);
 			free(buffer);
@@ -81,11 +82,11 @@ int matchesOutput(int file, int testfile, char* buffer) {
 	status = read(file, &c, 1);
 	char c2 = '?';
 	int status2 = read(testfile, &c2, 1);
-	while (status && c != terminator && status2) {
+	while (status && c != outputTerminator && status2) {
 		if (status == -1) {
 			if (errno != EINTR) {
 				perror("Error");
-				exit(EXIT_FAILURE);
+				exit(1);
 			}
 			status = read(file, &c, 1);
 			continue;
@@ -93,7 +94,7 @@ int matchesOutput(int file, int testfile, char* buffer) {
 		if (status2 == -1) {
 			if (errno != EINTR) {
 				perror("Error");
-				exit(EXIT_FAILURE);
+				exit(1);
 			}
 			status2 = read(testfile, &c2, 1);
 			continue;
@@ -103,21 +104,6 @@ int matchesOutput(int file, int testfile, char* buffer) {
 		}
 		status = read(file, &c, 1);
 		status2 = read(testfile, &c2, 1);
-	}
-	if (status && !status2) {
-		// need to finish reading output in testcases.txt
-		ret = 0;
-		while (status && c != terminator && status2) {
-			if (status == -1) {
-				if (errno != EINTR) {
-					perror("Error");
-					exit(EXIT_FAILURE);
-				}
-				status = read(file, &c, 1);
-				continue;
-			}
-			status = read(file, &c, 1);
-		}
 	}
 	return ret;
 }
@@ -129,31 +115,25 @@ int main(int argc, char* argv[]) {
 	int testfile = open("testfile", O_RDONLY | O_NONBLOCK);
 	if (file == -1 || testfile == -1) {
 		perror("Error");
-		return EXIT_FAILURE;
+		return 1;
 	}
 	if (!buffer) {
 		printf("Error: Malloc failed\n");
-		return EXIT_FAILURE;
+		return 1;
 	}
 	status = read(file, &c, 1);
 	while (status) {
 		if (status == -1) {
 			if (errno != EINTR) {
 				perror("Error");
-				return EXIT_FAILURE;
+				return 1;
 			}
 			// signal interrupted read, try again
 			status = read(file, &c, 1);
 			continue;
 		}
-		if (c == 'I') {
-			// read command terminated by newline and execute
-			read(file, &c, 1); // newline
+		if (c == '$') {
 			executeInput(file, buffer, head);
-		}
-		if (c == 'O') {
-			// read expected output and compare to buffer
-			read(file, &c, 1); // newline
 			if (matchesOutput(file, testfile, buffer)) {
 				printf("Test %d passed\n", testCounter);
 			} else {
@@ -165,8 +145,8 @@ int main(int argc, char* argv[]) {
 	}
 	if (close(file) == -1) {
 		perror("Error");
-		return EXIT_FAILURE;
+		return 1;
 	}
 	free(buffer);
-	return EXIT_SUCCESS;
+	return 0;
 }

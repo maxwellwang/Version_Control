@@ -1,5 +1,8 @@
 Test 1
-I
-echo mario~
-O
-mario~
+$ echo mario
+mario
+
+Test 2
+$ echo hey
+hey
+
