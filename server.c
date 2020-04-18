@@ -8,13 +8,15 @@
 #include <unistd.h>
 #include <limits.h>
 #include <netinet/in.h>
+#include <fcntl.h>
+#include <string.h>
 #define CONNECTION_QUEUE_SIZE 10
 
 typedef struct {
-  char code;
-  int arglen;
   char ** args;
-  char * dirname;
+  int argc;
+  int filelen;
+  char code;  
 } packet;
 
 int init_port(int argc, char * argv[]) {
@@ -34,36 +36,116 @@ int init_port(int argc, char * argv[]) {
     exit(1);
   }
   
-  return port;
+  return portNo;
 }
 
-int parse_request(int socket) {
-  packet * p = malloc(sizeof(packet));
-  //read in code
-  int c;
-  read(socket, &c, 1);
-  p->code = c;
 
-  //read in arguments
+//reads input until a space and returns the string
+char * read_space(int socket) {
   int num_bytes;
-  char * str_bytes = malloc(64);
-  memset(str_bytes, 0, 64);
+  char * str_bytes = malloc(4096);
+  memset(str_bytes, 0, 4096);
   int buf_pos = 0;
   while (str_bytes[buf_pos-1]  != ' ') {
     read(socket, str_bytes + buf_pos, 1);
     buf_pos++;
   }
   str_bytes[buf_pos-1] = 0;
-  num_bytes = atoi(str_bytes);
+  return str_bytes;
+}
+
+
+//populates args and argc of packet
+void read_args(int socket, packet * p) {
+  int argc = atoi(read_space(socket));
+  char ** args = malloc(argc * sizeof(char*));
+  p->argc = argc;
+
+  char * arg;
+  int i;
+  for (i = 0; i < argc; i++) {
+    arg = read_space(socket);
+    args[i] = arg;
+  }
+  p->args = args;
   
-  //read num_bytes bytes
-  
-  //repeat for file
-  
+  return;
+}
+
+//reads len bytes into _wtf_tmp_.tgz
+void read_to_file(int socket, int len) {
+  int fd = open("./_wtf_tmp.tgz", O_RDWR | O_CREAT, 00600);
+  if (fd == -1) {
+    printf("Error: could not open file\n");
+    exit(1); //only exiting the child
+  }
+
+  char buff[4096];
+  int to_read, num_read, num_write;
+  memset(buff, 0, 4096);
+
+  while (len > 0) {
+    to_read = 4096 > len ? 4096 : len;
+    num_read = read(socket, buff, to_read);
+    if (num_read == 0) {
+      return;
+    }
+
+    num_write = write(fd, buff, num_read);
+    len -= num_read;
+  }
+}
+
+int parse_request(int socket) {
+  packet * p = malloc(sizeof(packet));
+  int c, len;
+  read(socket, &c, 1);
+  p->code = c;
+
+  read_args(socket, p);
+    
+  len = atoi(read_space(socket));
+  p->filelen = len; 
+  read_to_file(socket, len);
+
   handle_request(p);
 }
 
-int handle_request(packet p) {
+void checkout(packet * p ) {
+}
+void update(packet * p ) {
+}
+void upgrade(packet * p ) {
+}
+void commit_a(packet * p ) {
+}
+void commit_b(packet * p ) {
+}
+void push(packet * p ) {
+}
+void create(packet * p ) {
+}
+void destroy(packet * p ) {
+}
+void currentversion(packet * p ) {
+}
+void history(packet * p ) {
+}
+void rollback(packet * p ) {
+}
+void testfunc(packet * p ) {
+  printf("Reached the test function!\n");
+
+  printf("%d args, they are (in [brackets]):\n", p->argc);
+  int i;
+  for (i = 0; i < p->argc; i++) {
+    printf("Arg %d: [%s]\n ", i, (p->args)[i]);
+  }
+  printf("Length of file is: %d\n", p->filelen);
+}
+
+
+int handle_request(packet * p) {
   //read in information according to protocol
   switch (p->code) {
   case '0':
@@ -75,29 +157,32 @@ int handle_request(packet p) {
   case '2':
     upgrade(p);
     break;
-  case '2':
+  case '3':
     commit_a(p);
     break;
-  case '2':
+  case '4':
     commit_b(p);
     break;
-  case '2':
+  case '5':
     push(p);
     break;
-  case '2':
+  case '6':
     create(p);
     break;
-  case '2':
+  case '7':
     destroy(p);
     break;
-  case '2':
+  case '8':
     currentversion(p);
     break;
-  case '2':
+  case '9':
     history(p);
     break;
-  case '2':
+  case 'a':
     rollback(p);
+    break;
+  case 't':
+    testfunc(p);
     break;
     
   }
@@ -108,7 +193,7 @@ int handle_request(packet p) {
 
 int main(int argc, char* argv[]) {
   int port = init_port(argc, argv);
-  int sockfd, socket, childpid;
+  int sockfd, new_socket, childpid;
   struct sockaddr_in serverAddress, clientAddress;
   
   // init socket file descriptor
@@ -140,16 +225,16 @@ int main(int argc, char* argv[]) {
   // accept connections, multithreaded
   while (1) {
     int clientLength = sizeof(clientAddress);
-    if ((socket = accept(sockfd, (struct sockaddr*) &clientAddress, &clientLength)) == -1) {
+    if ((new_socket = accept(sockfd, (struct sockaddr*) &clientAddress, &clientLength)) == -1) {
       printf("Error: Failed to accept new connection\n");
       continue;
     }
-    if ((childpid = Fork()) == 0) {
+    if ((childpid = fork()) == 0) {
       close(sockfd); //close stream in child, still open in parent
-      handle_request(socket);
+      parse_request(new_socket);
       exit(0); //exit child when done
     }
-    close(socket);
+    close(new_socket);
   }
   
   /*
