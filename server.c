@@ -12,6 +12,7 @@
 #include <string.h>
 #define CONNECTION_QUEUE_SIZE 10
 
+#define DEBUG 1
 typedef struct {
   char ** args;
   int argc;
@@ -46,8 +47,9 @@ char * read_space(int socket) {
   char * str_bytes = malloc(4096);
   memset(str_bytes, 0, 4096);
   int buf_pos = 0;
-  while (str_bytes[buf_pos-1]  != ' ') {
+  while (buf_pos == 0 || str_bytes[buf_pos-1]  != ' ') {
     read(socket, str_bytes + buf_pos, 1);
+    printf("Read: [%c]", str_bytes[buf_pos]);
     buf_pos++;
   }
   str_bytes[buf_pos-1] = 0;
@@ -60,7 +62,6 @@ void read_args(int socket, packet * p) {
   int argc = atoi(read_space(socket));
   char ** args = malloc(argc * sizeof(char*));
   p->argc = argc;
-
   char * arg;
   int i;
   for (i = 0; i < argc; i++) {
@@ -72,6 +73,24 @@ void read_args(int socket, packet * p) {
   return;
 }
 
+//read from one fd to another, for len bytes
+void f2f(int fd1, int fd2, int len) {
+  char buff[4096];
+  int to_read, num_read, num_write;
+  memset(buff, 0, 4096);
+
+  while (len > 0) {
+    to_read = 4096 > len ? 4096 : len;
+    num_read = read(fd1, buff, to_read);
+    if (num_read == 0) {
+      return;
+    }
+
+    num_write = write(fd2, buff, num_read);
+    len -= num_read;
+  }
+}
+
 //reads len bytes into _wtf_tmp_.tgz
 void read_to_file(int socket, int len) {
   int fd = open("./_wtf_tmp.tgz", O_RDWR | O_CREAT, 00600);
@@ -79,35 +98,28 @@ void read_to_file(int socket, int len) {
     printf("Error: could not open file\n");
     exit(1); //only exiting the child
   }
+  
+  f2f(socket, fd, len);
 
-  char buff[4096];
-  int to_read, num_read, num_write;
-  memset(buff, 0, 4096);
-
-  while (len > 0) {
-    to_read = 4096 > len ? 4096 : len;
-    num_read = read(socket, buff, to_read);
-    if (num_read == 0) {
-      return;
-    }
-
-    num_write = write(fd, buff, num_read);
-    len -= num_read;
-  }
+  close(fd);
 }
 
+
 int parse_request(int socket) {
+  if (DEBUG) printf("Parsing request\n");
   packet * p = malloc(sizeof(packet));
   int c, len;
   read(socket, &c, 1);
   p->code = c;
-
+  if (DEBUG) printf("Got code\n");
   read_args(socket, p);
-    
+  if (DEBUG) printf("Got args\n");
   len = atoi(read_space(socket));
-  p->filelen = len; 
-  read_to_file(socket, len);
-
+  p->filelen = len;
+  if (len > 0) {
+    read_to_file(socket, len);
+  }
+  if (DEBUG) printf("Got file\n");
   handle_request(p);
 }
 
@@ -139,7 +151,7 @@ void testfunc(packet * p ) {
   printf("%d args, they are (in [brackets]):\n", p->argc);
   int i;
   for (i = 0; i < p->argc; i++) {
-    printf("Arg %d: [%s]\n ", i, (p->args)[i]);
+    printf("Arg %d: [%s]\n", i, (p->args)[i]);
   }
   printf("Length of file is: %d\n", p->filelen);
 }
@@ -147,6 +159,7 @@ void testfunc(packet * p ) {
 
 int handle_request(packet * p) {
   //read in information according to protocol
+  if (DEBUG) printf("Handling request\n");
   switch (p->code) {
   case '0':
     checkout(p);
@@ -221,7 +234,8 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  
+
+  if (DEBUG) printf("Waiting for connections\n");
   // accept connections, multithreaded
   while (1) {
     int clientLength = sizeof(clientAddress);
@@ -229,9 +243,12 @@ int main(int argc, char* argv[]) {
       printf("Error: Failed to accept new connection\n");
       continue;
     }
+    if (DEBUG) printf("Connection accepted!\n");
     if ((childpid = fork()) == 0) {
+      if (DEBUG) printf("Child created!\n");
       close(sockfd); //close stream in child, still open in parent
       parse_request(new_socket);
+      
       exit(0); //exit child when done
     }
     close(new_socket);

@@ -60,10 +60,36 @@ int c_connect() {
   return sockfd;
 }
 
+
+int writen(int fd, char * buf, int n) {
+  int left = n;
+  int written = 0;
+  
+  while (left > 0) {
+    if ((written = write(fd, buf, left)) <= 0) {
+      if (written < 0 && errno == EINTR) {
+	printf("interrupted!\n");
+	written = 0;
+      }	else {
+	return -1;
+      }
+    }
+    left -= written;
+    buf += written;
+  }
+  return n;
+}
+
 int main(int argc, char* argv[]) {
-  // check arg count
-  c_connect();
+  //debug tests
+  int sockfd = c_connect();
+  printf("Connected\n");
+  char *testbuf = "t10 asdkfja d difjisd e ajisdj f e f f 0 10 abcabcabcd";
+  int sent = writen(sockfd, testbuf, strlen(testbuf));
+  printf("Sent message %d\n", sent);
   return 1;
+  
+  // check arg count
   if (argc < 3) {
     printf("Error: Expected at least 3 args, received %d\n", argc);
     return 1;
