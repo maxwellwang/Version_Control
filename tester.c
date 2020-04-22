@@ -22,14 +22,6 @@ int testCounter = 1;
 void executeInput(int file, char* buffer, char* head) {
 	status = read(file, &c, 1);
 	while (status && c != inputTerminator) {
-		if (status == -1) {
-			if (errno != EINTR) {
-				perror("Error");
-				exit(1);
-			}
-			status = read(file, &c, 1);
-			continue;
-		}
 		if (length + 1 > size) {
 			// double size
 			size *= 2;
@@ -83,22 +75,6 @@ int matchesOutput(int file, int testfile, char* buffer) {
 	char c2 = '?';
 	int status2 = read(testfile, &c2, 1);
 	while (status && c != outputTerminator && status2) {
-		if (status == -1) {
-			if (errno != EINTR) {
-				perror("Error");
-				exit(1);
-			}
-			status = read(file, &c, 1);
-			continue;
-		}
-		if (status2 == -1) {
-			if (errno != EINTR) {
-				perror("Error");
-				exit(1);
-			}
-			status2 = read(testfile, &c2, 1);
-			continue;
-		}
 		if (c != c2) {
 			ret = 0; // different char detected
 		}
@@ -109,10 +85,10 @@ int matchesOutput(int file, int testfile, char* buffer) {
 }
 
 int main(int argc, char* argv[]) {
-	int file = open("testcases.txt", O_RDONLY | O_NONBLOCK);
+	int file = open("testcases.txt", O_RDONLY);
 	char* buffer = (char*) malloc(INITIAL_BUFFER_SIZE);
 	char* head = buffer;
-	int testfile = open("testfile", O_RDONLY | O_NONBLOCK);
+	int testfile = open("testfile", O_RDONLY);
 	if (file == -1 || testfile == -1) {
 		perror("Error");
 		return 1;
@@ -123,15 +99,6 @@ int main(int argc, char* argv[]) {
 	}
 	status = read(file, &c, 1);
 	while (status) {
-		if (status == -1) {
-			if (errno != EINTR) {
-				perror("Error");
-				return 1;
-			}
-			// signal interrupted read, try again
-			status = read(file, &c, 1);
-			continue;
-		}
 		if (c == '$') {
 			executeInput(file, buffer, head);
 			if (matchesOutput(file, testfile, buffer)) {

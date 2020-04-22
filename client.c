@@ -1,16 +1,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>
-
-
+#include <fcntl.h>
 
 int configure(int argc, char* argv[]) {
+	if (argc != 4) {
+		printf("Expected 4 args for configure, received %d\n", argc);
+		exit(1);
+	}
+	int fd = open("./.configure", O_WRONLY | O_CREAT, 00600);
+	write(fd, argv[2], strlen(argv[2]));
+	write(fd, " ", 1);
+	write(fd, argv[3], strlen(argv[3]));
+	close(fd);
 }
 int update(int argc, char* argv[]) {
 }
@@ -35,28 +44,42 @@ int history(int argc, char* argv[]) {
 int rollback(int argc, char* argv[]) {
 }
 
+// reads input until a space and returns the string
+char * read_space(int fd) {
+  int num_bytes = 1;
+  char * str_bytes = malloc(4096);
+  memset(str_bytes, 0, 4096);
+  int buf_pos = 0;
+  while (num_bytes > 0 && (buf_pos == 0 || str_bytes[buf_pos-1]  != ' ')) {
+    num_bytes = read(fd, str_bytes + buf_pos, 1);
+    buf_pos++;
+  }
+  str_bytes[buf_pos-1] = 0;
+  return str_bytes;
+}
 
-
-//returns socket fd of stream, exits if fails
-int c_connect() { 
+// returns socket fd of stream, exits if fails
+int c_connect() {
+  int configfd = open("./.configure", O_RDONLY); 
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket == -1) {
+  if (sockfd == -1) {
     printf("Socket creation failed\n");
-    exit(0);
+    exit(1);
   }
   
   struct sockaddr_in serverAddress;
   bzero(&serverAddress, sizeof(serverAddress));
   serverAddress.sin_family = AF_INET;
   //TODO: read ip and port from a file, and maybe even hostname?
-  serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
-  serverAddress.sin_port = htons(8080);
-
+  char* buffer = read_space(configfd);
+  serverAddress.sin_addr.s_addr = inet_addr(buffer);
+  int portno = atoi(read_space(configfd));
+  serverAddress.sin_port = htons(portno);
+  close(configfd);
   while (connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress))) {
     printf("Connecting to server failed, attemping again in 3s\n");
     sleep(3);
   }
-  
   return sockfd;
 }
 
@@ -98,7 +121,7 @@ int main(int argc, char* argv[]) {
   if (strcmp(argv[1], "configure") == 0) {
     configure(argc, argv);
   } else if (strcmp(argv[1], "checkout") == 0) {
-    checkout(argc, argv);
+    //checkout(argc, argv);
   } else if (strcmp(argv[1], "update") == 0) {
     configure(argc, argv);
   } else if (strcmp(argv[1], "upgrade") == 0) {

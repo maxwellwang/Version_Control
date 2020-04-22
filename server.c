@@ -104,25 +104,6 @@ void read_to_file(int socket, int len) {
   close(fd);
 }
 
-
-int parse_request(int socket) {
-  if (DEBUG) printf("Parsing request\n");
-  packet * p = malloc(sizeof(packet));
-  int c, len;
-  read(socket, &c, 1);
-  p->code = c;
-  if (DEBUG) printf("Got code\n");
-  read_args(socket, p);
-  if (DEBUG) printf("Got args\n");
-  len = atoi(read_space(socket));
-  p->filelen = len;
-  if (len > 0) {
-    read_to_file(socket, len);
-  }
-  if (DEBUG) printf("Got file\n");
-  handle_request(p);
-}
-
 void checkout(packet * p ) {
 }
 void update(packet * p ) {
@@ -155,7 +136,6 @@ void testfunc(packet * p ) {
   }
   printf("Length of file is: %d\n", p->filelen);
 }
-
 
 int handle_request(packet * p) {
   //read in information according to protocol
@@ -201,8 +181,24 @@ int handle_request(packet * p) {
   }
   
 }
-  
 
+int parse_request(int socket) {
+  if (DEBUG) printf("Parsing request\n");
+  packet * p = malloc(sizeof(packet));
+  int c, len;
+  read(socket, &c, 1);
+  p->code = c;
+  if (DEBUG) printf("Got code\n");
+  read_args(socket, p);
+  if (DEBUG) printf("Got args\n");
+  len = atoi(read_space(socket));
+  p->filelen = len;
+  if (len > 0) {
+    read_to_file(socket, len);
+  }
+  if (DEBUG) printf("Got file\n");
+  handle_request(p);
+}
 
 int main(int argc, char* argv[]) {
   int port = init_port(argc, argv);
@@ -212,7 +208,7 @@ int main(int argc, char* argv[]) {
   // init socket file descriptor
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd == -1) {
-    printf("Socket creation failed\n");
+    printf("Error: Socket creation failed\n");
     exit(1);
   }
   
