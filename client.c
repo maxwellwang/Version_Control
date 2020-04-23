@@ -105,13 +105,14 @@ int writen(int fd, char * buf, int n) {
 
 int main(int argc, char* argv[]) {
   //debug tests
+  /*
   int sockfd = c_connect();
   printf("Connected\n");
   char *testbuf = "t10 asdkfja d difjisd e ajisdj f e f f 0 10 abcabcabcd";
   int sent = writen(sockfd, testbuf, strlen(testbuf));
   printf("Sent message %d\n", sent);
   return 1;
-  
+  */
   // check arg count
   if (argc < 3) {
     printf("Error: Expected at least 3 args, received %d\n", argc);

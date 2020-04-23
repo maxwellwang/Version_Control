@@ -1,7 +1,2 @@
 Test 1
-$ echo mario
-mario
-
-Test 2
-$ echo hey
-hey
+$ ./WTF configure frost.cs.rutgers.edu 8080

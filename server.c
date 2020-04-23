@@ -20,6 +20,11 @@ typedef struct {
   char code;  
 } packet;
 
+void exitFunction() {
+	
+	return;
+}
+
 int init_port(int argc, char * argv[]) {
   // check arg count
   if (argc != 2) {
@@ -44,7 +49,7 @@ int init_port(int argc, char * argv[]) {
 //reads input until a space and returns the string
 char * read_space(int socket) {
   int num_bytes;
-  char * str_bytes = malloc(4096);
+  char* str_bytes = malloc(4096);
   memset(str_bytes, 0, 4096);
   int buf_pos = 0;
   while (buf_pos == 0 || str_bytes[buf_pos-1]  != ' ') {
@@ -201,6 +206,7 @@ int parse_request(int socket) {
 }
 
 int main(int argc, char* argv[]) {
+  atexit(exitFunction);
   int port = init_port(argc, argv);
   int sockfd, new_socket, childpid;
   struct sockaddr_in serverAddress, clientAddress;

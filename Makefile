@@ -5,4 +5,4 @@ test: tester.c
 	gcc -o "WTFtest" tester.c; touch testfile
 
 clean:
-	rm WTF WTFserver WTFtest testfile
+	rm -f WTF WTFserver WTFtest testfile .configure
