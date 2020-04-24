@@ -20,8 +20,15 @@ typedef struct {
   char code;  
 } packet;
 
+void checkMalloc(void* ptr) {
+	if (!ptr) {
+	printf("Malloc failed\n");
+	exit(1);
+	}
+}
+
 void exitFunction() {
-	
+	// free stuff and close sockets... IDK HOW
 	return;
 }
 
@@ -50,6 +57,7 @@ int init_port(int argc, char * argv[]) {
 char * read_space(int socket) {
   int num_bytes;
   char* str_bytes = malloc(4096);
+  checkMalloc(str_bytes);
   memset(str_bytes, 0, 4096);
   int buf_pos = 0;
   while (buf_pos == 0 || str_bytes[buf_pos-1]  != ' ') {
@@ -66,6 +74,7 @@ char * read_space(int socket) {
 void read_args(int socket, packet * p) {
   int argc = atoi(read_space(socket));
   char ** args = malloc(argc * sizeof(char*));
+  checkMalloc(args);
   p->argc = argc;
   char * arg;
   int i;
@@ -122,6 +131,8 @@ void commit_b(packet * p ) {
 void push(packet * p ) {
 }
 void create(packet * p ) {
+	printf("reached create function\n");
+	printf("%s\n", (p->args)[0]);
 }
 void destroy(packet * p ) {
 }
@@ -190,18 +201,19 @@ int handle_request(packet * p) {
 int parse_request(int socket) {
   if (DEBUG) printf("Parsing request\n");
   packet * p = malloc(sizeof(packet));
+  checkMalloc(p);
   int c, len;
   read(socket, &c, 1);
   p->code = c;
   if (DEBUG) printf("Got code\n");
   read_args(socket, p);
   if (DEBUG) printf("Got args\n");
-  len = atoi(read_space(socket));
+  /*len = atoi(read_space(socket));
   p->filelen = len;
   if (len > 0) {
     read_to_file(socket, len);
   }
-  if (DEBUG) printf("Got file\n");
+  if (DEBUG) printf("Got file\n");*/
   handle_request(p);
 }
 
@@ -259,6 +271,7 @@ int main(int argc, char* argv[]) {
   /*
   // prepare buffer
   char* buffer = (char*) malloc(256);
+  checkMalloc(buffer);
   bzero(buffer, 256);
   // read message from client
   int numBytes = read(newsockfd, buffer, 255);

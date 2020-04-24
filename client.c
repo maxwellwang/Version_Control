@@ -10,6 +10,32 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+void checkMalloc(void* ptr) {
+	if (!ptr) {
+		printf("Malloc failed\n");
+		exit(1);
+	}
+}
+
+int writen(int fd, char * buf, int n) {
+  int left = n;
+  int written = 0;
+  
+  while (left > 0) {
+    if ((written = write(fd, buf, left)) <= 0) {
+      if (written < 0 && errno == EINTR) {
+	printf("interrupted!\n");
+	written = 0;
+      }	else {
+	return -1;
+      }
+    }
+    left -= written;
+    buf += written;
+  }
+  return n;
+}
+
 int configure(int argc, char* argv[]) {
 	if (argc != 4) {
 		printf("Expected 4 args for configure, received %d\n", argc);
@@ -30,6 +56,16 @@ int commit(int argc, char* argv[]) {
 int push(int argc, char* argv[]) {
 }
 int create(int argc, char* argv[]) {
+	if (argc != 3) {
+		printf("Expected 3 args, received %d\n", argc);
+		exit(1);
+	}
+	int sockfd = c_connect();
+	char string[] = "61 %s 0";
+	writen(sockfd, "61 ", 3); // code 6, 1 more arg
+	writen(sockfd, argv[2], strlen(argv[2])); // project name
+	writen(sockfd, " ", 1);
+	close(sockfd);
 }
 int destroy(int argc, char* argv[]) {
 }
@@ -48,6 +84,7 @@ int rollback(int argc, char* argv[]) {
 char * read_space(int fd) {
   int num_bytes = 1;
   char * str_bytes = malloc(4096);
+  checkMalloc(str_bytes);
   memset(str_bytes, 0, 4096);
   int buf_pos = 0;
   while (num_bytes > 0 && (buf_pos == 0 || str_bytes[buf_pos-1]  != ' ')) {
@@ -81,26 +118,6 @@ int c_connect() {
     sleep(3);
   }
   return sockfd;
-}
-
-
-int writen(int fd, char * buf, int n) {
-  int left = n;
-  int written = 0;
-  
-  while (left > 0) {
-    if ((written = write(fd, buf, left)) <= 0) {
-      if (written < 0 && errno == EINTR) {
-	printf("interrupted!\n");
-	written = 0;
-      }	else {
-	return -1;
-      }
-    }
-    left -= written;
-    buf += written;
-  }
-  return n;
 }
 
 int main(int argc, char* argv[]) {
