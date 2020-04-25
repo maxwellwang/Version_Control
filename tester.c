@@ -55,7 +55,7 @@ int executeInput(int file) {
 		}
 		*(buffer+length) = c;
 		length++;
-		if (length >= 7 && strncmp("./WTF ", buffer + length - 7, 6) == 0) {
+		if (length >= 17 && strncmp("./clientDir/WTF ", buffer + length - 17, 16) == 0) {
 			getCode = 3;
 		}
 		if (getCode > 0) {
@@ -87,6 +87,7 @@ int executeInput(int file) {
 	length = 0;
 	free(buffer);
 	if (strcmp(code, "con") == 0) {
+		system("mv .configure clientDir"); // have to rectify .configure created in AsstLast due to command being invoked here
 		return 0;
 	} else if (strcmp(code, "che") == 0) {
 		return 1;
@@ -121,7 +122,7 @@ int executeInput(int file) {
 int checkOutput(int file, int testfile, int code) {
 	switch (code) {
 		case 0: // configure, check if .configure file was made
-			if (access("./.configure", F_OK) != -1) {
+			if (access("./clientDir/.configure", F_OK) != -1) {
 				return 1;
 			}
 			break;

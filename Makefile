@@ -1,8 +1,8 @@
 all: clientDir/client.c serverDir/server.c
 	gcc -o "WTF" clientDir/client.c; mv WTF clientDir; gcc -o "WTFserver" serverDir/server.c; mv WTFserver serverDir
 
-test: clientDir/tester.c
-	gcc -o "WTFtest" clientDir/tester.c; touch testfile; mv WTFtest clientDir; mv testfile clientDir
+test: tester.c
+	gcc -o "WTFtest" tester.c; touch testfile
 
 clean:
-	rm -f clientDir/WTF serverDir/WTFserver clientDir/WTFtest clientDir/testfile clientDir/.configure
+	rm -f clientDir/WTF serverDir/WTFserver WTFtest testfile clientDir/.configure
