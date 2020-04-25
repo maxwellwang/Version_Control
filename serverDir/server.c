@@ -62,7 +62,7 @@ char * read_space(int socket) {
   int buf_pos = 0;
   while (buf_pos == 0 || str_bytes[buf_pos-1]  != ' ') {
     read(socket, str_bytes + buf_pos, 1);
-    printf("Read: [%c]", str_bytes[buf_pos]);
+    //printf("Read: [%c]", str_bytes[buf_pos]);
     buf_pos++;
   }
   str_bytes[buf_pos-1] = 0;
@@ -107,16 +107,35 @@ void f2f(int fd1, int fd2, int len) {
 
 //reads len bytes into _wtf_tmp_.tgz
 void read_to_file(int socket, int len) {
-  int fd = open("./_wtf_tmp.tgz", O_RDWR | O_CREAT, 00600);
+  int fd = open("./_wtf_tar_server", O_RDWR | O_CREAT, 00600);
   if (fd == -1) {
     printf("Error: could not open file\n");
     exit(1); //only exiting the child
   }
   
   f2f(socket, fd, len);
-
   close(fd);
 }
+
+int parse_request(int socket) {
+  if (DEBUG) printf("Parsing request\n");
+  packet * p = malloc(sizeof(packet));
+  checkMalloc(p);
+  int c, len;
+  read(socket, &c, 1);
+  p->code = c;
+  if (DEBUG) printf("Got code\n");
+  read_args(socket, p);
+  if (DEBUG) printf("Got args\n");
+  len = atoi(read_space(socket));
+  p->filelen = len;
+  if (len > 0) {
+    read_to_file(socket, len);
+  }
+  if (DEBUG) printf("Got file\n");
+  handle_request(p);
+}
+
 
 void checkout(packet * p ) {
 }
@@ -198,24 +217,6 @@ int handle_request(packet * p) {
   
 }
 
-int parse_request(int socket) {
-  if (DEBUG) printf("Parsing request\n");
-  packet * p = malloc(sizeof(packet));
-  checkMalloc(p);
-  int c, len;
-  read(socket, &c, 1);
-  p->code = c;
-  if (DEBUG) printf("Got code\n");
-  read_args(socket, p);
-  if (DEBUG) printf("Got args\n");
-  /*len = atoi(read_space(socket));
-  p->filelen = len;
-  if (len > 0) {
-    read_to_file(socket, len);
-  }
-  if (DEBUG) printf("Got file\n");*/
-  handle_request(p);
-}
 
 int main(int argc, char* argv[]) {
   atexit(exitFunction);

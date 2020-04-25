@@ -1,0 +1,171 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+void checkMalloc(void* ptr) {
+  if (!ptr) {
+    printf("Malloc failed\n");
+    exit(1);
+  }
+}
+
+int writen(int fd, char * buf, int n) {
+  int left = n;
+  int written = 0;
+  
+  while (left > 0) {
+    if ((written = write(fd, buf, left)) <= 0) {
+      if (written < 0 && errno == EINTR) {
+	printf("interrupted!\n");
+	written = 0;
+      }	else {
+	return -1;
+      }
+    }
+    left -= written;
+    buf += written;
+  }
+  return n;
+}
+
+int configure(int argc, char* argv[]) {
+  if (argc != 4) {
+    printf("Expected 4 args for configure, received %d\n", argc);
+    exit(1);
+  }
+  int fd = open("./.configure", O_WRONLY | O_CREAT, 00600);
+  write(fd, argv[2], strlen(argv[2]));
+  write(fd, " ", 1);
+  write(fd, argv[3], strlen(argv[3]));
+  close(fd);
+}
+int update(int argc, char* argv[]) {
+}
+int upgrade(int argc, char* argv[]) {
+}
+int commit(int argc, char* argv[]) {
+}
+int push(int argc, char* argv[]) {
+}
+int create(int argc, char* argv[]) {
+  if (argc != 3) {
+    printf("Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+  int sockfd = c_connect();
+  char string[] = "61 %s 0";
+  writen(sockfd, "61 ", 3); // code 6, 1 more arg
+  writen(sockfd, argv[2], strlen(argv[2])); // project name
+  writen(sockfd, " ", 1);
+  close(sockfd);
+}
+int destroy(int argc, char* argv[]) {
+}
+int add(int argc, char* argv[]) {
+}
+int c_remove(int argc, char* argv[]) {
+}
+int currentversion(int argc, char* argv[]) {
+}
+int history(int argc, char* argv[]) {
+}
+int rollback(int argc, char* argv[]) {
+}
+
+// reads input until a space and returns the string
+char * read_space(int fd) {
+  int num_bytes = 1;
+  char * str_bytes = malloc(4096);
+  checkMalloc(str_bytes);
+  memset(str_bytes, 0, 4096);
+  int buf_pos = 0;
+  while (num_bytes > 0 && (buf_pos == 0 || str_bytes[buf_pos-1]  != ' ')) {
+    num_bytes = read(fd, str_bytes + buf_pos, 1);
+    buf_pos++;
+  }
+  str_bytes[buf_pos-1] = 0;
+  return str_bytes;
+}
+
+// returns socket fd of stream, exits if fails
+int c_connect() {
+  int configfd = open("./.configure", O_RDONLY); 
+  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd == -1) {
+    printf("Socket creation failed\n");
+    exit(1);
+  }
+  
+  struct sockaddr_in serverAddress;
+  bzero(&serverAddress, sizeof(serverAddress));
+  serverAddress.sin_family = AF_INET;
+  //TODO: read ip and port from a file, and maybe even hostname?
+  char* buffer = read_space(configfd);
+  serverAddress.sin_addr.s_addr = inet_addr(buffer);
+  int portno = atoi(read_space(configfd));
+  serverAddress.sin_port = htons(portno);
+  close(configfd);
+  while (connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress))) {
+    printf("Connecting to server failed, attemping again in 3s\n");
+    sleep(3);
+  }
+  return sockfd;
+}
+
+int main(int argc, char* argv[]) {
+  //debug tests
+  
+    int sockfd = c_connect();
+    printf("Connected\n");
+    char *testbuf = "t10 asdkfja d difjisd e ajisdj f e f f 0 10 abcabcabcd";
+    int sent = writen(sockfd, testbuf, strlen(testbuf));
+    printf("Sent message %d\n", sent);
+    return 1;
+  
+  // check arg count
+  if (argc < 3) {
+    printf("Error: Expected at least 3 args, received %d\n", argc);
+    return 1;
+  }
+  // determine command to execute
+  if (strcmp(argv[1], "configure") == 0) {
+    configure(argc, argv);
+  } else if (strcmp(argv[1], "checkout") == 0) {
+    //checkout(argc, argv);
+  } else if (strcmp(argv[1], "update") == 0) {
+    configure(argc, argv);
+  } else if (strcmp(argv[1], "upgrade") == 0) {
+    upgrade(argc, argv);
+  } else if (strcmp(argv[1], "commit") == 0) {
+    commit(argc, argv);
+  } else if (strcmp(argv[1], "push") == 0) {
+    push(argc, argv);
+  } else if (strcmp(argv[1], "create") == 0) {
+    create(argc, argv);
+  } else if (strcmp(argv[1], "destroy") == 0) {
+    destroy(argc, argv);
+  } else if (strcmp(argv[1], "add") == 0) {
+    add(argc, argv);
+  } else if (strcmp(argv[1], "remove") == 0) {
+    c_remove(argc, argv);
+  } else if (strcmp(argv[1], "currentversion") == 0) {
+    currentversion(argc, argv);
+  } else if (strcmp(argv[1], "history") == 0) {
+    history(argc, argv);
+  } else if (strcmp(argv[1], "rollback") == 0) {
+    rollback(argc, argv);
+  } else {
+    printf("Error: Expected configure, checkout, update, uprade, commit, push, create, destroy, add, remove, currentversion,"
+	   " history, or rollback, received %s\n", argv[1]);
+    return 1;
+  }
+  return 0;
+}
