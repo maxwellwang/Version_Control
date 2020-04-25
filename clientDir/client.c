@@ -9,12 +9,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include "zipper.c"
 
 void checkMalloc(void* ptr) {
-	if (!ptr) {
-		printf("Malloc failed\n");
-		exit(1);
-	}
+  if (!ptr) {
+    printf("Malloc failed\n");
+    exit(1);
+  }
 }
 
 int writen(int fd, char * buf, int n) {
@@ -37,15 +38,15 @@ int writen(int fd, char * buf, int n) {
 }
 
 int configure(int argc, char* argv[]) {
-	if (argc != 4) {
-		printf("Expected 4 args for configure, received %d\n", argc);
-		exit(1);
-	}
-	int fd = open("./.configure", O_WRONLY | O_CREAT, 00600);
-	write(fd, argv[2], strlen(argv[2]));
-	write(fd, " ", 1);
-	write(fd, argv[3], strlen(argv[3]));
-	close(fd);
+  if (argc != 4) {
+    printf("Expected 4 args for configure, received %d\n", argc);
+    exit(1);
+  }
+  int fd = open("./.configure", O_WRONLY | O_CREAT, 00600);
+  writen(fd, argv[2], strlen(argv[2]));
+  writen(fd, " ", 1);
+  writen(fd, argv[3], strlen(argv[3]));
+  close(fd);
 }
 int update(int argc, char* argv[]) {
 	if (argc != 3) {
@@ -97,7 +98,6 @@ int create(int argc, char* argv[]) {
 		exit(1);
 	}
 	int sockfd = c_connect();
-	char string[] = "61 %s 0";
 	writen(sockfd, "61 ", 3); // code 6, 1 arg
 	writen(sockfd, argv[2], strlen(argv[2])); // project name
 	writen(sockfd, " ", 1); // last space
@@ -204,15 +204,45 @@ int c_connect() {
   return sockfd;
 }
 
+//read from one fd to another, for len bytes
+void f2f(int fd1, int fd2, int len) {
+  char buff[4096];
+  int to_read, num_read, num_write;
+  memset(buff, 0, 4096);
+
+  while (len > 0) {
+    to_read = 4096 > len ? 4096 : len;
+    num_read = read(fd1, buff, to_read);
+    if (num_read == 0) {
+      return;
+    }
+
+    num_write = write(fd2, buff, num_read);
+    len -= num_read;
+  }
+}
+
 int main(int argc, char* argv[]) {
   //debug tests
   /*
-  int sockfd = c_connect();
-  printf("Connected\n");
-  char *testbuf = "t10 asdkfja d difjisd e ajisdj f e f f 0 10 abcabcabcd";
-  int sent = writen(sockfd, testbuf, strlen(testbuf));
-  printf("Sent message %d\n", sent);
-  return 1;
+    int sockfd = c_connect();
+    printf("Connected\n");
+    char *testbuf = "t10 asdkfja d difjisd e ajisdj f e f f 0 ";//10 abcabcabcd";
+    int sent = writen(sockfd, testbuf, strlen(testbuf));
+    printf("Sent message %d\n", sent);
+    //sendint file
+    zip_init();
+    zip_add("tartest");
+    zip_add("tartest2");
+    zip_tar();
+    char * size = malloc(64);
+    memset(size, 0, 64);
+    sprintf(size, "%d", zip_size());
+    writen(sockfd, size, strlen(size));
+    writen(sockfd, " ", 1);
+    int tarfd = open("./_wtf_tar", O_RDONLY);
+    f2f(tarfd, sockfd, zip_size());
+    return 1;
   */
   // check arg count
   if (argc < 3) {

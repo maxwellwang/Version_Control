@@ -1,0 +1,2 @@
+Test 1
+$ ./WTF configure 127.0.0.1 8080

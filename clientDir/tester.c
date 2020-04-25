@@ -55,7 +55,7 @@ int executeInput(int file) {
 		}
 		*(buffer+length) = c;
 		length++;
-		if (strncmp("./WTF ", buffer + length - 6, 6) == 0) {
+		if (length >= 7 && strncmp("./WTF ", buffer + length - 7, 6) == 0) {
 			getCode = 3;
 		}
 		if (getCode > 0) {

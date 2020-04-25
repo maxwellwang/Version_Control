@@ -1,4 +1,0 @@
-Test 1
-$ ./WTF configure 127.0.0.1 8080
-Test 2
-$ ./serverfolder/WTFserver 8080; ./WTF create Project
