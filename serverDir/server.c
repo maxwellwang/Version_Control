@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
@@ -12,7 +13,7 @@
 #include <string.h>
 #define CONNECTION_QUEUE_SIZE 10
 
-#define DEBUG 1
+#define DEBUG 0
 typedef struct {
   char ** args;
   int argc;
@@ -117,26 +118,6 @@ void read_to_file(int socket, int len) {
   close(fd);
 }
 
-int parse_request(int socket) {
-  if (DEBUG) printf("Parsing request\n");
-  packet * p = malloc(sizeof(packet));
-  checkMalloc(p);
-  int c, len;
-  read(socket, &c, 1);
-  p->code = c;
-  if (DEBUG) printf("Got code\n");
-  read_args(socket, p);
-  if (DEBUG) printf("Got args\n");
-  len = atoi(read_space(socket));
-  p->filelen = len;
-  if (len > 0) {
-    read_to_file(socket, len);
-  }
-  if (DEBUG) printf("Got file\n");
-  handle_request(p);
-}
-
-
 void checkout(packet * p ) {
 }
 void update(packet * p ) {
@@ -150,8 +131,16 @@ void commit_b(packet * p ) {
 void push(packet * p ) {
 }
 void create(packet * p ) {
-	printf("reached create function\n");
-	printf("%s\n", (p->args)[0]);
+	if (DEBUG) printf("in create about to mkdir\n");
+	if (mkdir(p->args[0], 0700) == -1) {
+		printf("Error: %s project already exists\n", p->args[0]); // dir already exists
+		exit(1);
+	}
+	char path[4096];
+	sprintf(path, "./%s/.Manifest", p->args[0]);
+	int manifest = open(path, O_WRONLY | O_CREAT, 00600);
+	write(manifest, "1\n", 2);
+	close(manifest);
 }
 void destroy(packet * p ) {
 }
@@ -217,6 +206,24 @@ int handle_request(packet * p) {
   
 }
 
+int parse_request(int socket) {
+  if (DEBUG) printf("Parsing request\n");
+  packet * p = malloc(sizeof(packet));
+  checkMalloc(p);
+  int c, len;
+  read(socket, &c, 1);
+  p->code = c;
+  if (DEBUG) printf("Got code\n");
+  read_args(socket, p);
+  if (DEBUG) printf("Got args\n");
+  /*len = atoi(read_space(socket));
+  p->filelen = len;
+  if (len > 0) {
+    read_to_file(socket, len);
+  }
+  if (DEBUG) printf("Got file\n");*/
+  handle_request(p);
+}
 
 int main(int argc, char* argv[]) {
   atexit(exitFunction);

@@ -5,4 +5,4 @@ test: tester.c
 	gcc -o "WTFtest" tester.c; touch testfile
 
 clean:
-	rm -f clientDir/WTF serverDir/WTFserver WTFtest testfile clientDir/.configure
+	rm -rf clientDir/WTF serverDir/WTFserver WTFtest testfile clientDir/.configure serverDir/myproject
