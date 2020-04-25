@@ -74,6 +74,7 @@ int c_connect() {
     printf("Connecting to server failed, attemping again in 3s\n");
     sleep(3);
   }
+  printf("Connected to server\n");
   return sockfd;
 }
 
@@ -287,5 +288,6 @@ int main(int argc, char* argv[]) {
 	   " history, or rollback, received %s\n", argv[1]);
     return 1;
   }
+  printf("Disconnected from server\n");
   return 0;
 }

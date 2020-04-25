@@ -23,13 +23,13 @@ typedef struct {
 
 void checkMalloc(void* ptr) {
 	if (!ptr) {
-	printf("Malloc failed\n");
+	printf("Error: Malloc failed\n");
 	exit(1);
 	}
 }
 
 void exitFunction() {
-	// free stuff and close sockets... IDK HOW
+	// free stuff and close sockets/threads... IDK HOW
 	return;
 }
 
@@ -131,7 +131,6 @@ void commit_b(packet * p ) {
 void push(packet * p ) {
 }
 void create(packet * p ) {
-	if (DEBUG) printf("in create about to mkdir\n");
 	if (mkdir(p->args[0], 0700) == -1) {
 		printf("Error: %s project already exists on server\n", p->args[0]); // dir already exists
 		exit(1);
@@ -266,7 +265,7 @@ int main(int argc, char* argv[]) {
       printf("Error: Failed to accept new connection\n");
       continue;
     }
-    if (DEBUG) printf("Connection accepted!\n");
+    printf("Connection accepted from client\n");
     if ((childpid = fork()) == 0) {
       if (DEBUG) printf("Child created!\n");
       close(sockfd); //close stream in child, still open in parent
@@ -274,6 +273,7 @@ int main(int argc, char* argv[]) {
       
       exit(0); //exit child when done
     }
+    printf("Disconnected from client\n");
     close(new_socket);
   }
   
