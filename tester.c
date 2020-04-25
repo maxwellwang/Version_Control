@@ -85,6 +85,7 @@ int executeInput(int file) {
 	} else if (strcmp(code, "pus") == 0) {
 		return 5;
 	} else if (strcmp(code, "cre") == 0) {
+		sleep(1);
 		return 6;
 	} else if (strcmp(code, "des") == 0) {
 		return 7;
@@ -140,7 +141,6 @@ int main(int argc, char* argv[]) {
 		if (c == '$') {
 			read(file, &c, 1); // space
 			code = executeInput(file);
-			sleep(1);
 			if (checkOutput(file, testfile, code) == 1) {
 				printf("Test %d passed\n", testCounter);
 			} else {

@@ -13,7 +13,7 @@
 
 void checkMalloc(void* ptr) {
   if (!ptr) {
-    printf("Malloc failed\n");
+    printf("Error: Malloc failed\n");
     exit(1);
   }
 }
@@ -57,7 +57,7 @@ int c_connect() {
   int configfd = open("./.configure", O_RDONLY); 
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd == -1) {
-    printf("Socket creation failed\n");
+    printf("Error: Socket creation failed\n");
     exit(1);
   }
   
@@ -79,7 +79,7 @@ int c_connect() {
 
 int configure(int argc, char* argv[]) {
   if (argc != 4) {
-    printf("Expected 4 args for configure, received %d\n", argc);
+    printf("Error: Expected 4 args for configure, received %d\n", argc);
     exit(1);
   }
   int fd = open("./.configure", O_WRONLY | O_CREAT, 00600);
@@ -90,116 +90,122 @@ int configure(int argc, char* argv[]) {
 }
 int update(int argc, char* argv[]) {
 	if (argc != 3) {
-		printf("Expected 3 args, received %d\n", argc);
+		printf("Error: Expected 3 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }
 int upgrade(int argc, char* argv[]) {
 	if (argc != 3) {
-		printf("Expected 3 args, received %d\n", argc);
+		printf("Error: Expected 3 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }
 int commit(int argc, char* argv[]) {
 	if (argc != 3) {
-		printf("Expected 3 args, received %d\n", argc);
+		printf("Error: Expected 3 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }
 int push(int argc, char* argv[]) {
 	if (argc != 3) {
-		printf("Expected 3 args, received %d\n", argc);
+		printf("Error: Expected 3 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }
 int create(int argc, char* argv[]) {
 	if (argc != 3) {
-		printf("Expected 3 args, received %d\n", argc);
+		printf("Error: Expected 3 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 	int sockfd = c_connect();
 	writen(sockfd, "61 ", 3); // code 6, 1 arg
 	writen(sockfd, argv[2], strlen(argv[2])); // project name
 	writen(sockfd, " ", 1); // last space
+	if (mkdir(argv[2], 0700) == -1) {
+		printf("Error: %s project already exists on client\n", argv[2]);
+		exit(1);
+	}
+	// place received .Manifest into project dir
+	// i think read from sockfd
 	close(sockfd);
 }
 int destroy(int argc, char* argv[]) {
 	if (argc != 3) {
-		printf("Expected 3 args, received %d\n", argc);
+		printf("Error: Expected 3 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }
 int add(int argc, char* argv[]) {
 	if (argc != 4) {
-		printf("Expected 4 args, received %d\n", argc);
+		printf("Error: Expected 4 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }
 int c_remove(int argc, char* argv[]) {
 	if (argc != 4) {
-		printf("Expected 4 args, received %d\n", argc);
+		printf("Error: Expected 4 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }
 int currentversion(int argc, char* argv[]) {
 	if (argc != 3) {
-		printf("Expected 3 args, received %d\n", argc);
+		printf("Error: Expected 3 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }
 int history(int argc, char* argv[]) {
 	if (argc != 3) {
-		printf("Expected 3 args, received %d\n", argc);
+		printf("Error: Expected 3 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }
 int rollback(int argc, char* argv[]) {
 	if (argc != 4) {
-		printf("Expected 4 args, received %d\n", argc);
+		printf("Error: Expected 4 args, received %d\n", argc);
 		exit(1);
 	}
 	if (access("./.configure", F_OK) == -1) {
-		printf("Expected to run configure before this, no .configure file found\n");
+		printf("Error: Expected to run configure before this, no .configure file found\n");
 		exit(1);
 	}
 }

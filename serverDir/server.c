@@ -133,7 +133,7 @@ void push(packet * p ) {
 void create(packet * p ) {
 	if (DEBUG) printf("in create about to mkdir\n");
 	if (mkdir(p->args[0], 0700) == -1) {
-		printf("Error: %s project already exists\n", p->args[0]); // dir already exists
+		printf("Error: %s project already exists on server\n", p->args[0]); // dir already exists
 		exit(1);
 	}
 	char path[4096];
@@ -141,6 +141,7 @@ void create(packet * p ) {
 	int manifest = open(path, O_WRONLY | O_CREAT, 00600);
 	write(manifest, "1\n", 2);
 	close(manifest);
+	return;
 }
 void destroy(packet * p ) {
 }

@@ -1,1 +1,7 @@
-A test plan documented in testplan.txt and code to run the test cases you specify. Test.
+Test Plan
+Test 1
+We first test client's configure command. This is the foundational test since all other commands depend on the info stored in the
+.configure file that this command generates as a result.
+Test 2
+Second, we test creating a project. This makes sure that the client can connect to the server and send a "packet" that tells the
+server what command to execute.
