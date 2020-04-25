@@ -149,10 +149,6 @@ int main(int argc, char* argv[]) {
     printf("Sent message %d\n", sent);
     //sendint file
     zip_init();
-    int i = 0;
-    //    for (i = 0; i < len; i++) {
-    //zip_add(paths[i]);
-    //    }
     zip_add("tartest");
     zip_add("tartest2");
     zip_tar();
