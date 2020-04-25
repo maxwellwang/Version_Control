@@ -48,36 +48,120 @@ int configure(int argc, char* argv[]) {
 	close(fd);
 }
 int update(int argc, char* argv[]) {
+	if (argc != 3) {
+		printf("Expected 3 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 int upgrade(int argc, char* argv[]) {
+	if (argc != 3) {
+		printf("Expected 3 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 int commit(int argc, char* argv[]) {
+	if (argc != 3) {
+		printf("Expected 3 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 int push(int argc, char* argv[]) {
+	if (argc != 3) {
+		printf("Expected 3 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 int create(int argc, char* argv[]) {
 	if (argc != 3) {
 		printf("Expected 3 args, received %d\n", argc);
 		exit(1);
 	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 	int sockfd = c_connect();
 	char string[] = "61 %s 0";
-	writen(sockfd, "61 ", 3); // code 6, 1 more arg
+	writen(sockfd, "61 ", 3); // code 6, 1 arg
 	writen(sockfd, argv[2], strlen(argv[2])); // project name
-	writen(sockfd, " ", 1);
+	writen(sockfd, " ", 1); // last space
 	close(sockfd);
 }
 int destroy(int argc, char* argv[]) {
+	if (argc != 3) {
+		printf("Expected 3 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 int add(int argc, char* argv[]) {
+	if (argc != 4) {
+		printf("Expected 4 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 int c_remove(int argc, char* argv[]) {
+	if (argc != 4) {
+		printf("Expected 4 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 int currentversion(int argc, char* argv[]) {
+	if (argc != 3) {
+		printf("Expected 3 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 int history(int argc, char* argv[]) {
+	if (argc != 3) {
+		printf("Expected 3 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 int rollback(int argc, char* argv[]) {
+	if (argc != 4) {
+		printf("Expected 4 args, received %d\n", argc);
+		exit(1);
+	}
+	if (access("./.configure", F_OK) == -1) {
+		printf("Expected to run configure before this, no .configure file found\n");
+		exit(1);
+	}
 }
 
 // reads input until a space and returns the string

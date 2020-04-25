@@ -40,6 +40,8 @@ int executeInput(int file) {
 	int status = read(file, &c, 1);
 	int charCounter = 1;
 	char code[] = "???";
+	int getCode = 0;
+	int j = 0;
 	while (status && c != inputTerminator) {
 		if (length + 1 > size) {
 			// double size
@@ -53,8 +55,12 @@ int executeInput(int file) {
 		}
 		*(buffer+length) = c;
 		length++;
-		if (charCounter >= 7 && charCounter <= 9) {
-			code[charCounter - 7] = c;
+		if (strncmp("./WTF ", buffer + length - 6, 6) == 0) {
+			getCode = 3;
+		}
+		if (getCode > 0) {
+			code[j++] = c;
+			getCode--;
 		}
 		status = read(file, &c, 1);
 		charCounter++;
