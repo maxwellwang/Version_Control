@@ -1,2 +1,24 @@
-A readme.pdf file documenting your design paying particular attention to the thread
-synchronization requirements of your application.
+# Version Control
+
+Version Control is a program for allowing multiple clients to edit projects stored in a server.
+
+## Description
+
+Version Control is a program that consists of a server and clients. The server holds projects that the client can interact with by
+changing the projects in a manner that always changes the most recent version.
+
+## Usage
+
+```bash
+make
+cd serverDir
+./WTFserver <port number>
+(open separate window)
+cd clientDir
+./WTF configure <ip address/hostname> <port number>
+./WTF create <project name>
+(back in server window)
+^C
+```
+
+## Implementation

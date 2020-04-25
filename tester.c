@@ -140,6 +140,7 @@ int main(int argc, char* argv[]) {
 		if (c == '$') {
 			read(file, &c, 1); // space
 			code = executeInput(file);
+			sleep(1);
 			if (checkOutput(file, testfile, code) == 1) {
 				printf("Test %d passed\n", testCounter);
 			} else {
