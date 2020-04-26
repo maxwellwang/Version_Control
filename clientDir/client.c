@@ -29,7 +29,7 @@ int writen(int fd, char * buf, int n) {
   while (left > 0) {
     if ((written = write(fd, buf, left)) <= 0) {
       if (written < 0 && errno == EINTR) {
-	printf("interrupted!\n");
+	printf("write interrupted!\n");
 	written = 0;
       }	else {
 	return -1;
@@ -137,6 +137,7 @@ int create(int argc, char* argv[]) {
   }
   // place received .Manifest into project dir
   close(sockfd);
+  printf("Disconnected from server\n");
   return 0;
 }
 int destroy(int argc, char* argv[]) {
@@ -149,6 +150,7 @@ int destroy(int argc, char* argv[]) {
   writen(sockfd, argv[2], strlen(argv[2])); // project name
   writen(sockfd, " ", 1); // last space
   close(sockfd);
+  printf("Disconnected from server\n");
   return 1;
 }
 int add(int argc, char* argv[]) {
@@ -156,21 +158,55 @@ int add(int argc, char* argv[]) {
     printf("Error: Expected 4 args, received %d\n", argc);
     exit(1);
   }
-  int sockfd = c_connect();
-  writen(sockfd, "82 ", 3); // code 8, 2 args
-  writen(sockfd, argv[2], strlen(argv[2])); // project name
-  writen(sockfd, " ", 1);
-  writen(sockfd, argv[3], strlen(argv[3])); // file name
-  writen(sockfd, " ", 1);
-  if (opendir(argv[2])) { // dir exists
-  	close(sockfd);
+  char manifestPath[13 + strlen(argv[2])];
+  sprintf(manifestPath, "./%s/.Manifest", argv[2]);
+  char filePath[4 + strlen(argv[2]) + strlen(argv[3])];
+  sprintf(filePath, "./%s/%s", argv[2], argv[3]);
+  if (opendir(argv[2])) { // dir exists, add to manifest if file isn't there yet
+  	if (access(filePath, F_OK) != -1) { // file exists, try to add to manifest
+  		int manifest = open(manifestPath, O_RDWR | O_APPEND);
+  		if (manifest == -1) {
+  			printf("Error: Failed to open %s\n", manifestPath);
+  			return 1;
+  		}
+  		char c = '?';
+  		char path[4096];
+  		int length = 0;
+  		int status = read(manifest, &c, 1);
+  		while (status > 0) {
+  			if (c == '/') {
+  				status = read(manifest, &c, 1);
+  				while (c != ' ') { // get file path to compare
+  					*(path + length) = c;
+  					length++;
+  					status = read(manifest, &c, 1);
+  				}
+  				if (strcmp(argv[3], path) == 0) { // file already in manifest
+  					printf("Error: %s file is already in manifest\n", argv[3]);
+  					return 1;
+  				} else { // not the same file, keep going
+  					length = 0;
+  					memset(path, 0, 4096);
+  				}
+  			}
+  			status = read(manifest, &c, 1);
+  		}
+  		// add file to manifest
+  		writen(manifest, "1 ", 2);
+  		writen(manifest, filePath + 2, strlen(filePath) - 2);
+  		writen(manifest, " ", 1);
+  		// writen(manifest, hash, something); how do i hashcode
+  		writen(manifest, "\n", 1);
+  		close(manifest);
+  	} else { // file does not exist, command fails
+  		printf("Error: %s does not exist\n", filePath);
+  		return 1;
+  	}
   } else if (errno == ENOENT) { // dir does not exit, command fails
   	printf("Error: %s project does not exist on client\n", argv[2]);
-  	close(sockfd);
    	return 1;
   } else { // opendir failed for some other reason, command fails
   	perror("Error");
-  	close(sockfd);
   	return 1;
   }
   return 0;
@@ -299,6 +335,5 @@ int main(int argc, char* argv[]) {
 	   " history, or rollback, received %s\n", argv[1]);
     return 1;
   }
-  printf("Disconnected from server\n");
   return 0;
 }
