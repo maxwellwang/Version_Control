@@ -131,12 +131,15 @@ void commit_b(packet * p ) {
 }
 void push(packet * p ) {
 }
-void create(packet * p ) {
+void create(packet * p, int socket) {
+	char message[41 + strlen(p->args[0])];
 	if (mkdir(p->args[0], 0700) == -1) {
-		printf("Error: %s project already exists on server\n", p->args[0]); // dir already exists
-		exit(1);
+		sprintf(message, "Error: %s project already exists on server\n", p->args[0]); // dir already exists
+		write(socket, message, strlen(message););
+		return;
 	}
-	char path[4096];
+	int pathLength = 12 + strlen(p->args[0]);
+	char path[pathLength];
 	sprintf(path, "./%s/.Manifest", p->args[0]);
 	int manifest = open(path, O_WRONLY | O_CREAT, 00600);
 	write(manifest, "1\n", 2);
@@ -162,7 +165,7 @@ void testfunc(packet * p ) {
   printf("Length of file is: %d\n", p->filelen);
 }
 
-int handle_request(packet * p) {
+int handle_request(packet * p, int socket) {
   //read in information according to protocol
   if (DEBUG) printf("Handling request\n");
   switch (p->code) {
@@ -185,7 +188,7 @@ int handle_request(packet * p) {
     push(p);
     break;
   case '6':
-    create(p);
+    create(p, socket);
     break;
   case '7':
     destroy(p);
@@ -223,7 +226,7 @@ int parse_request(int socket) {
     read_to_file(socket, len);
   }
   if (DEBUG) printf("Got file\n");*/
-  handle_request(p);
+  handle_request(p, socket);
 }
 
 int main(int argc, char* argv[]) {

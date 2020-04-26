@@ -6,20 +6,6 @@
 #include <sys/stat.h>
 #include "zipper.h"
 
-//actual function used to send compressed files
-void zip_send(int fd, int len, char ** paths) {
-  zip_init();
-  int i = 0;
-  for (i = 0; i < len; i++) {
-    zip_add(paths[i]);
-  }
-  zip_tar();
-  int size = zip_size();
-  
-
-}
-
-
 //remove any existing tar/directory
 void zip_init() {
   system("rm -r _wtf_dir 2>/dev/null");
@@ -54,4 +40,17 @@ int zip_size() {
   struct stat st;
   stat("_wtf_tar", &st);
   return st.st_size;
+}
+
+//actual function used to send compressed files
+void zip_send(int fd, int len, char ** paths) {
+  zip_init();
+  int i = 0;
+  for (i = 0; i < len; i++) {
+    zip_add(paths[i]);
+  }
+  zip_tar();
+  int size = zip_size();
+  
+
 }
