@@ -14,8 +14,12 @@
 #include <dirent.h>
 #include "../zipper.h"
 #define CONNECTION_QUEUE_SIZE 10
-
 #define DEBUG 0
+
+// global vars -> the files, sockets, pointers that exit function needs
+char* str_bytes;
+char** args;
+
 typedef struct {
   char ** args;
   int argc;
@@ -32,6 +36,8 @@ void checkMalloc(void* ptr) {
 
 void exitFunction() {
 	// free stuff and close sockets/threads... use global vars
+	free(str_bytes);
+	free(args);
 	return;
 }
 
@@ -80,7 +86,7 @@ int init_port(int argc, char * argv[]) {
 //reads input until a space and returns the string
 char * read_space(int socket) {
   int num_bytes;
-  char* str_bytes = malloc(4096);
+  str_bytes = malloc(4096); // global var now
   checkMalloc(str_bytes);
   memset(str_bytes, 0, 4096);
   int buf_pos = 0;
@@ -97,7 +103,7 @@ char * read_space(int socket) {
 //populates args and argc of packet
 void read_args(int socket, packet * p) {
   int argc = atoi(read_space(socket));
-  char ** args = malloc(argc * sizeof(char*));
+  args = malloc(argc * sizeof(char*)); // global var now
   checkMalloc(args);
   p->argc = argc;
   char * arg;
@@ -124,7 +130,7 @@ void f2f(int fd1, int fd2, int len) {
       return;
     }
 
-    num_write = write(fd2, buff, num_read);
+    num_write = writen(fd2, buff, num_read);
     len -= num_read;
   }
 }
@@ -157,16 +163,16 @@ void create(packet * p, int socket) {
 	char message[42 + strlen(p->args[0])];
 	if (mkdir(p->args[0], 0700) == -1) { // dir already exists
 		sprintf(message, "Error: %s project already exists on server\n", p->args[0]);
-		write(socket, message, strlen(message));
+		writen(socket, message, strlen(message));
 		return;
 	}
 	int pathLength = 12 + strlen(p->args[0]);
-	char path[pathLength];
-	sprintf(path, "./%s/.Manifest", p->args[0]);
-	int manifest = open(path, O_WRONLY | O_CREAT, 00600);
-	write(manifest, "1\n", 2);
+	char manifestPath[pathLength];
+	sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
+	int manifest = open(manifestPath, O_WRONLY | O_CREAT, 00600);
+	writen(manifest, "1\n", 2);
 	close(manifest);
-	send_file(socket, ".Manifest");
+	send_file(socket, manifestPath); // send manifest to client
 	return;
 }
 void destroy(packet * p, int socket) {
@@ -176,11 +182,11 @@ void destroy(packet * p, int socket) {
 		
 	} else if (errno == ENOENT) { // dir does not exist, command fails
 		sprintf(message, "Error: %s project does not exist on server\n", p->args[0]);
-		write(socket, message, strlen(message));
+		writen(socket, message, strlen(message));
 		return;
 	} else { // failed for some other reason, command fails
 		sprintf(message, "Error: %s\n", strerror(errno));
-		write(socket, message, strlen(message));
+		writen(socket, message, strlen(message));
 		return;
 	}
 	return;
@@ -264,6 +270,7 @@ int parse_request(int socket) {
   }
   if (DEBUG) printf("Got file\n");*/
   handle_request(p, socket);
+  free(p);
 }
 
 //can only send 1 file!!
@@ -278,6 +285,8 @@ void send_file(int sockfd, char * filename) {
   writen(sockfd, " ", 1);
   int tarfd = open("./_wtf_tar", O_RDONLY);
   f2f(tarfd, sockfd, zip_size());
+  free(size);
+  close(tarfd);
 }
 
 int main(int argc, char* argv[]) {
@@ -345,7 +354,7 @@ int main(int argc, char* argv[]) {
   }
   printf("Here is the message: %s\n",buffer);
   // write message back
-  numBytes = write(newsockfd, "I got your message", 18);
+  numBytes = writen(newsockfd, "I got your message", 18);
   if (numBytes == -1) {
   perror("Error");
   return 1;

@@ -205,16 +205,15 @@ int add(int argc, char* argv[]) {
   		}
   		// add file to manifest
   		writen(manifest, "1 ", 2); // version 1
-  		writen(manifest, argv[2], strlen(argv[2])); // project name
-  		writen(manifest, filePath + 1, strlen(filePath) - 1); // file path starting with /
+ 
+  		writen(manifest, filePath + 2, strlen(filePath) - 2);
   		writen(manifest, " ", 1);
   		unsigned char hashcode[4096];
   		hash(filePath, hashcode);
-  		writen(manifest, hashcode, 32); // hashcode
-  		writen(manifest, " 0", 2); // not reflected on server yet
+  		writen(manifest, hashcode, 32);
   		writen(manifest, "\n", 1);
   		close(manifest);
-  	} else { // file does not exist (this also checks if project exists), command fails
+  	} else { // file does not exist, command fails
   		printf("Error: %s does not exist\n", filePath);
   		return 1;
   	}

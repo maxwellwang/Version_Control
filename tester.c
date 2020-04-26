@@ -68,7 +68,7 @@ int executeInput(int file) {
 	}
 	// execute command in buffer and insert output (if any) into testfile
 	char command[4096];
-	sprintf(command, "(cd clientDir; %s > testfile)", buffer); // run in clientDir
+	sprintf(command, "(cd clientDir; %s > ../testfile)", buffer); // run in clientDir
 	bzero(command + 27 + strlen(buffer), 4096 - 27 - strlen(buffer));
 	system(command);
 	free(buffer);
@@ -106,6 +106,8 @@ int executeInput(int file) {
 
 // testfile only useful if the command prints to stdout
 int checkOutput(int file, int testfile, int code) {
+	char buffer[4096];
+	int clientManifest;
 	switch (code) {
 		case 0: // configure, check if .configure file was made
 			if (access("./clientDir/.configure", F_OK) != -1) {
@@ -113,9 +115,24 @@ int checkOutput(int file, int testfile, int code) {
 			}
 			break;
 		case 6: // create, check if client and server have the dir with .Manifest in it
-			if (access("./serverDir/myproject/.Manifest", F_OK) != -1) { // add client check later <-------------------------
+			if (access("./serverDir/myproject/.Manifest", F_OK) != -1 && access("./clientDir/myproject/.Manifest", F_OK) != -1) {
 				return 1;
 			}
+			break;
+		case 8: // add, check if client's manifest has the file
+			clientManifest = open("./clientDir/myproject/.Manifest", O_RDONLY);
+			int bytes = 0;
+			int status = read(clientManifest, buffer + bytes, 1);
+			char filePath[] = "myproject/myfile";
+			while (status > 0) {
+				bytes++;
+				if (bytes >= 16 && strcmp(filePath, buffer + bytes - 16) == 0) { // found it
+					close(clientManifest);
+					return 1;
+				}
+				status = read(clientManifest, buffer + bytes, 1);
+			}
+			close(clientManifest);
 			break;
 		default:
 			return 0; // shouldn't be here

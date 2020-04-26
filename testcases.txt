@@ -3,4 +3,4 @@ $ ./WTF configure 127.0.0.1 8080
 Test 2
 $ ./WTF create myproject
 Test 3
-$ ./WTF add myproject myfile
+$ echo text > myproject/file; ./WTF add myproject myfile
