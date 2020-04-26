@@ -34,6 +34,27 @@ void exitFunction() {
 	return;
 }
 
+void send_file(int sock, char * filename);
+
+int writen(int fd, char * buf, int n) {
+  int left = n;
+  int written = 0;
+  
+  while (left > 0) {
+    if ((written = write(fd, buf, left)) <= 0) {
+      if (written < 0 && errno == EINTR) {
+	printf("interrupted!\n");
+	written = 0;
+      }	else {
+	return -1;
+      }
+    }
+    left -= written;
+    buf += written;
+  }
+  return n;
+}
+
 int init_port(int argc, char * argv[]) {
   // check arg count
   if (argc != 2) {
@@ -135,7 +156,7 @@ void create(packet * p, int socket) {
 	char message[41 + strlen(p->args[0])];
 	if (mkdir(p->args[0], 0700) == -1) {
 		sprintf(message, "Error: %s project already exists on server\n", p->args[0]); // dir already exists
-		write(socket, message, strlen(message););
+		write(socket, message, strlen(message));
 		return;
 	}
 	int pathLength = 12 + strlen(p->args[0]);
@@ -144,6 +165,7 @@ void create(packet * p, int socket) {
 	int manifest = open(path, O_WRONLY | O_CREAT, 00600);
 	write(manifest, "1\n", 2);
 	close(manifest);
+	send_file(socket, ".Manifest");
 	return;
 }
 void destroy(packet * p ) {
@@ -227,6 +249,20 @@ int parse_request(int socket) {
   }
   if (DEBUG) printf("Got file\n");*/
   handle_request(p, socket);
+}
+
+//can only send 1 file!!
+void send_file(int sockfd, char * filename) {
+  zip_init();
+  zip_add(filename);
+  zip_tar();
+  char * size = malloc(64);
+  memset(size, 0, 64);
+  sprintf(size, "%d", zip_size());
+  writen(sockfd, size, strlen(size));
+  writen(sockfd, " ", 1);
+  int tarfd = open("./_wtf_tar", O_RDONLY);
+  f2f(tarfd, sockfd, zip_size());
 }
 
 int main(int argc, char* argv[]) {

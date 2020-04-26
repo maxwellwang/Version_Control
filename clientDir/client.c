@@ -11,6 +11,9 @@
 #include <fcntl.h>
 #include "../zipper.h"
 
+
+void send_file(int sock, char * filename);
+
 void checkMalloc(void* ptr) {
   if (!ptr) {
     printf("Error: Malloc failed\n");
@@ -90,125 +93,90 @@ int configure(int argc, char* argv[]) {
   close(fd);
 }
 int update(int argc, char* argv[]) {
-	if (argc != 3) {
-		printf("Error: Expected 3 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 3) {
+    printf("Error: Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+
 }
 int upgrade(int argc, char* argv[]) {
-	if (argc != 3) {
-		printf("Error: Expected 3 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 3) {
+    printf("Error: Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+
 }
 int commit(int argc, char* argv[]) {
-	if (argc != 3) {
-		printf("Error: Expected 3 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 3) {
+    printf("Error: Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+
 }
 int push(int argc, char* argv[]) {
-	if (argc != 3) {
-		printf("Error: Expected 3 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 3) {
+    printf("Error: Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+
 }
 int create(int argc, char* argv[]) {
-	if (argc != 3) {
-		printf("Error: Expected 3 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
-	int sockfd = c_connect();
-	writen(sockfd, "61 ", 3); // code 6, 1 arg
-	writen(sockfd, argv[2], strlen(argv[2])); // project name
-	writen(sockfd, " ", 1); // last space
-	if (mkdir(argv[2], 0700) == -1) {
-		printf("Error: %s project already exists on client\n", argv[2]);
-		exit(1);
-	}
-	// place received .Manifest into project dir
-	// i think read from sockfd
-	close(sockfd);
+  if (argc != 3) {
+    printf("Error: Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+
+  int sockfd = c_connect();
+  writen(sockfd, "61 ", 3); // code 6, 1 arg
+  writen(sockfd, argv[2], strlen(argv[2])); // project name
+  writen(sockfd, " ", 1); // last space
+  if (mkdir(argv[2], 0700) == -1) {
+    printf("Error: %s project already exists on client\n", argv[2]);
+    exit(1);
+  }
+  // place received .Manifest into project dir
+  close(sockfd);
 }
 int destroy(int argc, char* argv[]) {
-	if (argc != 3) {
-		printf("Error: Expected 3 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 3) {
+    printf("Error: Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+
 }
 int add(int argc, char* argv[]) {
-	if (argc != 4) {
-		printf("Error: Expected 4 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 4) {
+    printf("Error: Expected 4 args, received %d\n", argc);
+    exit(1);
+  }
+
 }
 int c_remove(int argc, char* argv[]) {
-	if (argc != 4) {
-		printf("Error: Expected 4 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 4) {
+    printf("Error: Expected 4 args, received %d\n", argc);
+    exit(1);
+  }
+
 }
 int currentversion(int argc, char* argv[]) {
-	if (argc != 3) {
-		printf("Error: Expected 3 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 3) {
+    printf("Error: Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+
 }
 int history(int argc, char* argv[]) {
-	if (argc != 3) {
-		printf("Error: Expected 3 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 3) {
+    printf("Error: Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+
 }
 int rollback(int argc, char* argv[]) {
-	if (argc != 4) {
-		printf("Error: Expected 4 args, received %d\n", argc);
-		exit(1);
-	}
-	if (access("./.configure", F_OK) == -1) {
-		printf("Error: Expected to run configure before this, no .configure file found\n");
-		exit(1);
-	}
+  if (argc != 4) {
+    printf("Error: Expected 4 args, received %d\n", argc);
+    exit(1);
+  }
 }
 
 //read from one fd to another, for len bytes
@@ -229,7 +197,26 @@ void f2f(int fd1, int fd2, int len) {
   }
 }
 
+//can only send 1 file!!
+void send_file(int sockfd, char * filename) {
+  zip_init();
+  zip_add(filename);
+  zip_tar();
+  char * size = malloc(64);
+  memset(size, 0, 64);
+  sprintf(size, "%d", zip_size());
+  writen(sockfd, size, strlen(size));
+  writen(sockfd, " ", 1);
+  int tarfd = open("./_wtf_tar", O_RDONLY);
+  f2f(tarfd, sockfd, zip_size());
+}
+
 int main(int argc, char* argv[]) {
+  //TOOD: don't need this check for add/remove
+//  if (access("./.configure", F_OK) == -1) {
+//    printf("Error: Expected to run configure before this, no .configure file found\n");
+//    exit(1);
+//  }
   //debug tests
   /*
     int sockfd = c_connect();
