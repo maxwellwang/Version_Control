@@ -50,7 +50,7 @@ int writen(int fd, char * buf, int n) {
   while (left > 0) {
     if ((written = write(fd, buf, left)) <= 0) {
       if (written < 0 && errno == EINTR) {
-	printf("interrupted!\n");
+	//printf("interrupted!\n");
 	written = 0;
       }	else {
 	return -1;
