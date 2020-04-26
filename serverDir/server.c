@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <string.h>
+#include "../zipper.h"
 #define CONNECTION_QUEUE_SIZE 10
 
 #define DEBUG 0

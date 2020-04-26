@@ -9,7 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "zipper.c"
+#include "../zipper.h"
 
 void checkMalloc(void* ptr) {
   if (!ptr) {

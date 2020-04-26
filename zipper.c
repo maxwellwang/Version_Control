@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-
+#include "zipper.h"
 
 //actual function used to send compressed files
 void zip_send(int fd, int len, char ** paths) {
@@ -55,14 +55,3 @@ int zip_size() {
   stat("_wtf_tar", &st);
   return st.st_size;
 }
-
-//just for testing
-//int main() {
-//  zip_init();
-//  zip_add("tartest");
-//  zip_add("tartest2");
-//  zip_tar();
-//  printf("Size: [%d]\n", zip_size());
-//  return 0;
-//}
-//
