@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include "../zipper.h"
 
 
@@ -132,24 +133,47 @@ int create(int argc, char* argv[]) {
   writen(sockfd, " ", 1); // last space
   if (mkdir(argv[2], 0700) == -1) {
     printf("Error: %s project already exists on client\n", argv[2]);
-    exit(1);
+    return 1;
   }
   // place received .Manifest into project dir
   close(sockfd);
+  return 0;
 }
 int destroy(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
   }
-
+  int sockfd = c_connect();
+  writen(sockfd, "71 ", 3); // code 7, 1 arg
+  writen(sockfd, argv[2], strlen(argv[2])); // project name
+  writen(sockfd, " ", 1); // last space
+  close(sockfd);
+  return 1;
 }
 int add(int argc, char* argv[]) {
   if (argc != 4) {
     printf("Error: Expected 4 args, received %d\n", argc);
     exit(1);
   }
-
+  int sockfd = c_connect();
+  writen(sockfd, "82 ", 3); // code 8, 2 args
+  writen(sockfd, argv[2], strlen(argv[2])); // project name
+  writen(sockfd, " ", 1);
+  writen(sockfd, argv[3], strlen(argv[3])); // file name
+  writen(sockfd, " ", 1);
+  if (opendir(argv[2])) { // dir exists
+  	close(sockfd);
+  } else if (errno == ENOENT) { // dir does not exit, command fails
+  	printf("Error: %s project does not exist on client\n", argv[2]);
+  	close(sockfd);
+   	return 1;
+  } else { // opendir failed for some other reason, command fails
+  	perror("Error");
+  	close(sockfd);
+  	return 1;
+  }
+  return 0;
 }
 int c_remove(int argc, char* argv[]) {
   if (argc != 4) {

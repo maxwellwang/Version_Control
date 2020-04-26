@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <string.h>
+#include <dirent.h>
 #include "../zipper.h"
 #define CONNECTION_QUEUE_SIZE 10
 
@@ -30,7 +31,7 @@ void checkMalloc(void* ptr) {
 }
 
 void exitFunction() {
-	// free stuff and close sockets/threads... IDK HOW
+	// free stuff and close sockets/threads... use global vars
 	return;
 }
 
@@ -153,9 +154,9 @@ void commit_b(packet * p ) {
 void push(packet * p ) {
 }
 void create(packet * p, int socket) {
-	char message[41 + strlen(p->args[0])];
-	if (mkdir(p->args[0], 0700) == -1) {
-		sprintf(message, "Error: %s project already exists on server\n", p->args[0]); // dir already exists
+	char message[42 + strlen(p->args[0])];
+	if (mkdir(p->args[0], 0700) == -1) { // dir already exists
+		sprintf(message, "Error: %s project already exists on server\n", p->args[0]);
 		write(socket, message, strlen(message));
 		return;
 	}
@@ -168,7 +169,21 @@ void create(packet * p, int socket) {
 	send_file(socket, ".Manifest");
 	return;
 }
-void destroy(packet * p ) {
+void destroy(packet * p, int socket) {
+	DIR* dir = opendir(p->args[0]);
+	char message[42 + strlen(p->args[0]) + strlen(strerror(ENOENT))];
+	if (dir) { // dir exists, delete it
+		
+	} else if (errno == ENOENT) { // dir does not exist, command fails
+		sprintf(message, "Error: %s project does not exist on server\n", p->args[0]);
+		write(socket, message, strlen(message));
+		return;
+	} else { // failed for some other reason, command fails
+		sprintf(message, "Error: %s\n", strerror(errno));
+		write(socket, message, strlen(message));
+		return;
+	}
+	return;
 }
 void currentversion(packet * p ) {
 }
@@ -213,7 +228,7 @@ int handle_request(packet * p, int socket) {
     create(p, socket);
     break;
   case '7':
-    destroy(p);
+    destroy(p, socket);
     break;
   case '8':
     currentversion(p);
