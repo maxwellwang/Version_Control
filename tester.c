@@ -151,6 +151,8 @@ int checkOutput(int file, int testfile, int code) {
 			close(clientManifest);
 			return 1;
 			break;
+		case 10: // currentversion, check testfile to compare
+			break;
 		default:
 			return 0; // shouldn't be here
 	}

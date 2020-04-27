@@ -94,18 +94,23 @@ void create(int argc, char* argv[]) {
     exit(1);
   }
   int sockfd = c_connect();
+  // argv[2] project name get rid of / if there is one
+  char* projectname = argv[2];
+  if (argv[2][strlen(argv[2]) - 1] == '/') {
+  	projectname[strlen(argv[2]) - 1] = '\0';
+  }
   writen(sockfd, "61 ", 3); // code 6, 1 arg
-  writen(sockfd, argv[2], strlen(argv[2])); // project name
+  writen(sockfd, projectname, strlen(projectname)); // project name
   writen(sockfd, " ", 1); // last space
   writen(sockfd, "0 ", 2); //no file
-  if (mkdir(argv[2], 0700) == -1) {
+  if (mkdir(projectname, 0700) == -1) {
     printf("Error: %s project already exists on client\n", argv[2]);
     return;
   }
   // place received .Manifest into project dir
   packet * p = parse_request(sockfd);
   char buf[4096];
-  sprintf(buf, "cp ./_wtf_dir/.Manifest %s", argv[2]);
+  sprintf(buf, "cp ./_wtf_dir/.Manifest %s", projectname);
   system(buf);
   close(sockfd);
   printf("Disconnected from server\n");
@@ -117,8 +122,13 @@ void destroy(int argc, char* argv[]) {
     exit(1);
   }
   int sockfd = c_connect();
+  // argv[2] project name get rid of / if there is one
+  char* projectname = argv[2];
+  if (argv[2][strlen(argv[2]) - 1] == '/') {
+  	projectname[strlen(argv[2]) - 1] = '\0';
+  }
   writen(sockfd, "71 ", 3); // code 7, 1 arg
-  writen(sockfd, argv[2], strlen(argv[2])); // project name
+  writen(sockfd, projectname, strlen(projectname)); // project name
   writen(sockfd, " ", 1); // last space
   close(sockfd);
   printf("Disconnected from server\n");
@@ -297,7 +307,15 @@ void currentversion(int argc, char* argv[]) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
   }
-
+  int sockfd = c_connect();
+  // argv[2] project name get rid of / if there is one
+  char* projectname = argv[2];
+  if (argv[2][strlen(argv[2]) - 1] == '/') {
+  	projectname[strlen(argv[2]) - 1] = '\0';
+  }
+  writen(sockfd, "81 ", 3);
+  writen(sockfd, projectname, strlen(projectname));
+  return;
 }
 void history(int argc, char* argv[]) {
   if (argc != 3) {

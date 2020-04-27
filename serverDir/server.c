@@ -88,8 +88,8 @@ void destroy(packet * p, int socket) {
 	DIR* dir = opendir(p->args[0]);
 	char message[42 + strlen(p->args[0]) + strlen(strerror(ENOENT))];
 	if (dir) { // dir exists, delete it
-		
-	} else if (errno == ENOENT) { // dir does not exist, command fails
+		closedir(dir);
+	} else if (errno == ENOENT) { // project does not exist, command fails
 		sprintf(message, "Error: %s project does not exist on server\n", p->args[0]);
 		writen(socket, message, strlen(message));
 		return;
@@ -100,7 +100,65 @@ void destroy(packet * p, int socket) {
 	}
 	return;
 }
-void currentversion(packet * p ) {
+void currentversion(packet * p, int socket) {
+	char message[42 + strlen(p->args[0])];
+	DIR* dir = opendir(p->args[0]);
+	if (dir) { // dir exists, list its files and versions
+		int pathLength = 12 + strlen(p->args[0]);
+		char manifestPath[pathLength];
+		sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
+		int manifest = open(manifestPath, O_RDONLY);
+		char c = '?';
+		int status = read(manifest, &c, 1);
+		while (c != '\n') {
+			read(manifest, &c, 1);
+		}
+		char version[4096];
+		int versionLength = 0;
+		memset(version, 0, 4096);
+		int inVersion = 1;
+		char filePath[4096];
+		int filePathLength = 0;
+		memset(filePath, 0, 4096);
+		status = read(manifest, &c, 1);
+		version[versionLength++] = c;
+		while (status > 0) {
+			if (inVersion) {
+				read(manifest, &c, 1);
+				while (c != ' ') {
+					version[versionLength++] = c;
+					read(manifest, &c, 1);
+				}
+				inVersion = 0;
+			} else if (c == '\n') { // end of file line, send it and reset the strings
+				writen(socket, filePath, strlen(filePath));
+				writen(socket, " ", 1);
+				writen(socket, version, strlen(version));
+				filePathLength = 0;
+				versionLength = 0;
+				memset(version, 0, 4096);
+				memset(filePath, 0, 4096);
+			} else if (c == '/') { // read file path
+				read(manifest, &c, 1);
+				filePath[filePathLength++] = c;
+				while (c != ' ') {
+					filePath[filePathLength++] = c;
+					read(manifest, &c, 1);
+				}
+			}
+			read(manifest, &c, 1);
+		}
+		close(manifest);
+	} else if (errno == ENOENT) { // project does not exist, command fails
+		sprintf(message, "Error: %s project does not exist on server\n", p->args[0]);
+		writen(socket, message, strlen(message));
+		return;
+	} else {
+		sprintf(message, "Error: %s\n", strerror(errno));
+		writen(socket, message, strlen(message));
+		return;
+	}
+	return;
 }
 void history(packet * p ) {
 }
@@ -146,7 +204,7 @@ int handle_request(packet * p, int socket) {
     destroy(p, socket);
     break;
   case '8':
-    currentversion(p);
+    currentversion(p, socket);
     break;
   case '9':
     history(p);
