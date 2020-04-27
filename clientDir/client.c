@@ -222,7 +222,6 @@ void add(int argc, char* argv[]) {
   		unsigned char hashcode[4096];
   		hash(filePath, hashcode);
   		writen(manifest, hashcode, 32); // hashcode
-  		writen(manifest, " 0", 2); // not reflected on server yet
   		writen(manifest, "\n", 1);
   		close(manifest);
   	} else { // file does not exist (this also checks if project exists), command fails
@@ -243,7 +242,101 @@ void c_remove(int argc, char* argv[]) {
     printf("Error: Expected 4 args, received %d\n", argc);
     exit(1);
   }
-
+  // argv[2] project name get rid of / if there is one
+  char* projectname = argv[2];
+  if (argv[2][strlen(argv[2]) - 1] == '/') {
+  	projectname[strlen(argv[2]) - 1] = '\0';
+  }
+  char manifestPath[13 + strlen(projectname)];
+  sprintf(manifestPath, "./%s/.Manifest", projectname);
+  char tempPath[9 + strlen(projectname)];
+  sprintf(tempPath, "./%s/.temp", projectname);
+  char filePath[4 + strlen(projectname) + strlen(argv[3])];
+  sprintf(filePath, "./%s/%s", projectname, argv[3]);
+  if (opendir(projectname)) { // dir exists, add to manifest if file isn't there yet
+  	if (access(filePath, F_OK) != -1) { // file exists, try to remove from manifest
+  		int manifest = open(manifestPath, O_RDONLY);
+  		int temp = open(tempPath, O_WRONLY | O_CREAT, 00600); // create temp to write everything except deleted line
+  		if (manifest == -1) {
+  			printf("Error: Failed to open %s\n", manifestPath);
+  			return;
+  		}
+  		if (temp == -1) {
+  			printf("Error: Failed to create %s\n", tempPath);
+  			return;
+  		}
+  		char c = '?';
+  		char path[4096];
+  		char firstPart[4096];
+  		int length = 0;
+  		int firstPartLength = 0;
+  		int status = read(manifest, &c, 1);
+  		while (c != '\n') {
+  			writen(temp, &c, 1);
+  			read(manifest, &c, 1);
+  		}
+  		writen(temp, "\n", 1);
+  		status = read(manifest, &c, 1);
+  		while (status > 0) {
+  			if (c == '/') {
+  				status = read(manifest, &c, 1);
+  				while (c != ' ') { // get file path to compare
+  					*(path + length) = c;
+  					length++;
+  					*(firstPart + firstPartLength) = c;
+  					firstPartLength++;
+  					status = read(manifest, &c, 1);
+  				}
+  				if (strcmp(argv[3], path) == 0) { // file to delete found, skip it for temp and finish
+  					while (c != '\n') {
+  						read(manifest, &c, 1);
+  					}
+  					status = read(manifest, &c, 1);
+  					while (status > 0) {
+  						writen(temp, &c, 1);
+  						read(manifest, &c, 1);
+  					}
+  					// replace manifest with temp
+  					remove(manifestPath);
+  					rename(tempPath, manifestPath);
+  					return;
+  				} else { // not the same file, add the line to temp
+  					writen(temp, firstPart, firstPartLength);
+  					writen(temp, " ", 1);
+  					read(manifest, &c, 1);
+  					while (c != '\n') {
+  						writen(temp, &c, 1);
+  						read(manifest, &c, 1);
+  					}
+  					length = 0;
+  					memset(path, 0, 4096);
+  					firstPartLength = 0;
+  					memset(firstPart, 0, 4096);
+  				}
+  			} else {
+  				*(firstPart + firstPartLength) = c;
+  				firstPartLength++;
+  			}
+  			status = read(manifest, &c, 1);
+  		}
+  		// finished reading manifest and file not found
+  		close(manifest);
+  		close(temp);
+  		remove(tempPath);
+  		printf("Error: %s is not in manifest\n", filePath);
+  		return;
+  	} else { // file does not exist (this also checks if project exists), command fails
+  		printf("Error: %s does not exist\n", filePath);
+  		return;
+  	}
+  } else if (errno == ENOENT) { // dir does not exit, command fails
+  	printf("Error: %s project does not exist on client\n", projectname);
+   	return;
+  } else { // opendir failed for some other reason, command fails
+  	perror("Error");
+  	return;
+  }
+  return;
 }
 void currentversion(int argc, char* argv[]) {
   if (argc != 3) {
