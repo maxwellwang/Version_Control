@@ -13,59 +13,25 @@
 #include <string.h>
 #include <dirent.h>
 #include <pthread.h>
-#include "../zipper.h"
+#include "../util.h"
 #define CONNECTION_QUEUE_SIZE 10
-#define DEBUG 0
+#define DEBUG 1
 
 // global vars -> the files, sockets, pointers that exit function needs
-char* str_bytes;
-char** args;
+char* g_str_bytes;
+char** g_args;
 
 typedef struct {
 	int sockfd;
 	int new_socket;
 } params;
 
-typedef struct {
-  char ** args;
-  int argc;
-  int filelen;
-  char code;  
-} packet;
-
-void checkMalloc(void* ptr) {
-	if (!ptr) {
-	printf("Error: Malloc failed\n");
-	exit(1);
-	}
-}
 
 void exitFunction() {
 	// free stuff and close sockets/threads... use global vars
-	free(str_bytes);
-	free(args);
+	free(g_str_bytes);
+	free(g_args);
 	return;
-}
-
-void send_file(int sock, char * filename);
-
-int writen(int fd, char * buf, int n) {
-  int left = n;
-  int written = 0;
-  
-  while (left > 0) {
-    if ((written = write(fd, buf, left)) <= 0) {
-      if (written < 0 && errno == EINTR) {
-	//printf("interrupted!\n");
-	written = 0;
-      }	else {
-	return -1;
-      }
-    }
-    left -= written;
-    buf += written;
-  }
-  return n;
 }
 
 int init_port(int argc, char * argv[]) {
@@ -88,70 +54,6 @@ int init_port(int argc, char * argv[]) {
   return portNo;
 }
 
-
-//reads input until a space and returns the string
-char * read_space(int socket) {
-  int num_bytes;
-  str_bytes = malloc(4096); // global var now
-  checkMalloc(str_bytes);
-  memset(str_bytes, 0, 4096);
-  int buf_pos = 0;
-  while (buf_pos == 0 || str_bytes[buf_pos-1]  != ' ') {
-    read(socket, str_bytes + buf_pos, 1);
-    //printf("Read: [%c]", str_bytes[buf_pos]);
-    buf_pos++;
-  }
-  str_bytes[buf_pos-1] = 0;
-  return str_bytes;
-}
-
-
-//populates args and argc of packet
-void read_args(int socket, packet * p) {
-  int argc = atoi(read_space(socket));
-  args = malloc(argc * sizeof(char*)); // global var now
-  checkMalloc(args);
-  p->argc = argc;
-  char * arg;
-  int i;
-  for (i = 0; i < argc; i++) {
-    arg = read_space(socket);
-    args[i] = arg;
-  }
-  p->args = args;
-  
-  return;
-}
-
-//read from one fd to another, for len bytes
-void f2f(int fd1, int fd2, int len) {
-  char buff[4096];
-  int to_read, num_read, num_write;
-  memset(buff, 0, 4096);
-
-  while (len > 0) {
-    to_read = 4096 > len ? 4096 : len;
-    num_read = read(fd1, buff, to_read);
-    if (num_read == 0) {
-      return;
-    }
-
-    num_write = writen(fd2, buff, num_read);
-    len -= num_read;
-  }
-}
-
-//reads len bytes into _wtf_tmp_.tgz
-void read_to_file(int socket, int len) {
-  int fd = open("./_wtf_tar_server", O_RDWR | O_CREAT, 00600);
-  if (fd == -1) {
-    printf("Error: could not open file\n");
-    exit(1); //only exiting the child
-  }
-  
-  f2f(socket, fd, len);
-  close(fd);
-}
 
 void checkout(packet * p ) {
 }
@@ -178,7 +80,8 @@ void create(packet * p, int socket) {
 	int manifest = open(manifestPath, O_WRONLY | O_CREAT, 00600);
 	writen(manifest, "1\n", 2);
 	close(manifest);
-	//send_file(socket, manifestPath); // send manifest to client
+	writen(socket, "60 ", 3);
+	send_file(socket, manifestPath); // send manifest to client
 	return;
 }
 void destroy(packet * p, int socket) {
@@ -259,47 +162,19 @@ int handle_request(packet * p, int socket) {
   
 }
 
-int parse_request(int socket) {
-  if (DEBUG) printf("Parsing request\n");
-  packet * p = malloc(sizeof(packet));
-  checkMalloc(p);
-  int c, len;
-  read(socket, &c, 1);
-  p->code = c;
-  if (DEBUG) printf("Got code\n");
-  read_args(socket, p);
-  if (DEBUG) printf("Got args\n");
-  /*len = atoi(read_space(socket));
-  p->filelen = len;
-  if (len > 0) {
-    read_to_file(socket, len);
-  }
-  if (DEBUG) printf("Got file\n");*/
-  handle_request(p, socket);
-  free(p);
-}
-
-//can only send 1 file!!
-void send_file(int sockfd, char * filename) {
-  zip_init();
-  zip_add(filename);
-  zip_tar();
-  char * size = malloc(64);
-  memset(size, 0, 64);
-  sprintf(size, "%d", zip_size());
-  writen(sockfd, size, strlen(size));
-  writen(sockfd, " ", 1);
-  int tarfd = open("./_wtf_tar", O_RDONLY);
-  f2f(tarfd, sockfd, zip_size());
-  free(size);
-  close(tarfd);
-}
 
 void* myThreadFun(void* vargp) {
 	sleep(1);
 	if (DEBUG) printf("Thread created!%d and %d\n", ((params*)vargp)->sockfd, ((params*)vargp)->new_socket); // *vargp is params struct
+	int sock = ((params*)vargp)->new_socket;
 	close(((params*)vargp)->sockfd); // close sockfd in thread
-    parse_request(((params*)vargp)->new_socket);
+	packet * p = parse_request(sock);
+	handle_request(p, sock);
+	int i = 0;
+	for (; i < p->argc; i++) {
+	  free((p->args)[i]);
+	}
+	free(p);
 	return NULL;
 }
 
@@ -364,29 +239,5 @@ int main(int argc, char* argv[]) {
     close(new_socket);
   }
   
-  /*
-  // prepare buffer
-  char* buffer = (char*) malloc(256);
-  checkMalloc(buffer);
-  bzero(buffer, 256);
-  // read message from client
-  int numBytes = read(newsockfd, buffer, 255);
-  if (numBytes == -1) {
-  perror("Error");
-  return 1;
-  }
-  printf("Here is the message: %s\n",buffer);
-  // write message back
-  numBytes = writen(newsockfd, "I got your message", 18);
-  if (numBytes == -1) {
-  perror("Error");
-  return 1;
-  }
-
-  // close socket file descriptor
-  close(sockfd);
-  // free buffer
-  free(buffer);
-  */
   return 0;
 }
