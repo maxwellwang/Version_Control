@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include "../util.h"
 #define CONNECTION_QUEUE_SIZE 10
-#define DEBUG 1
+#define DEBUG 0
 
 // global vars -> the files, sockets, pointers that exit function needs
 char* g_str_bytes;

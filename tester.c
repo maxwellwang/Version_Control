@@ -107,7 +107,8 @@ int executeInput(int file) {
 // testfile only useful if the command prints to stdout
 int checkOutput(int file, int testfile, int code) {
 	char buffer[4096];
-	int clientManifest;
+	char filePath[] = "myproject/myfile";
+	int clientManifest, bytes, status;
 	switch (code) {
 		case 0: // configure, check if .configure file was made
 			if (access("./clientDir/.configure", F_OK) != -1) {
@@ -121,18 +122,34 @@ int checkOutput(int file, int testfile, int code) {
 			break;
 		case 8: // add, check if client's manifest has the file
 			clientManifest = open("./clientDir/myproject/.Manifest", O_RDONLY);
-			int bytes = 0;
-			int status = read(clientManifest, buffer + bytes, 1);
-			char filePath[] = "myproject/myfile";
+			bytes = 0;
+			status = read(clientManifest, buffer + bytes, 1);
+			bytes++;
 			while (status > 0) {
-				bytes++;
-				if (bytes >= 16 && strcmp(filePath, buffer + bytes - 16) == 0) { // found it
+				if (bytes >= 16 && strncmp(filePath, buffer + bytes - 16, 16) == 0) { // found it
 					close(clientManifest);
 					return 1;
 				}
 				status = read(clientManifest, buffer + bytes, 1);
+				bytes++;
 			}
 			close(clientManifest);
+			break;
+		case 9:
+			clientManifest = open("./clientDir/myproject/.Manifest", O_RDONLY);
+			bytes = 0;
+			status = read(clientManifest, buffer + bytes, 1);
+			bytes++;
+			while (status > 0) {
+				if (bytes >= 16 && strncmp(filePath, buffer + bytes - 16, 16) == 0) { // found it
+					close(clientManifest);
+					return 0;
+				}
+				status = read(clientManifest, buffer + bytes, 1);
+				bytes++;
+			}
+			close(clientManifest);
+			return 1;
 			break;
 		default:
 			return 0; // shouldn't be here
