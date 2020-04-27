@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <dirent.h>
+#include <pthread.h>
 #include "../zipper.h"
 #define CONNECTION_QUEUE_SIZE 10
 #define DEBUG 0
@@ -19,6 +20,11 @@
 // global vars -> the files, sockets, pointers that exit function needs
 char* str_bytes;
 char** args;
+
+typedef struct {
+	int sockfd;
+	int new_socket;
+} params;
 
 typedef struct {
   char ** args;
@@ -172,7 +178,7 @@ void create(packet * p, int socket) {
 	int manifest = open(manifestPath, O_WRONLY | O_CREAT, 00600);
 	writen(manifest, "1\n", 2);
 	close(manifest);
-	send_file(socket, manifestPath); // send manifest to client
+	//send_file(socket, manifestPath); // send manifest to client
 	return;
 }
 void destroy(packet * p, int socket) {
@@ -289,10 +295,18 @@ void send_file(int sockfd, char * filename) {
   close(tarfd);
 }
 
+void* myThreadFun(void* vargp) {
+	sleep(1);
+	if (DEBUG) printf("Thread created!%d and %d\n", ((params*)vargp)->sockfd, ((params*)vargp)->new_socket); // *vargp is params struct
+	close(((params*)vargp)->sockfd); // close sockfd in thread
+    parse_request(((params*)vargp)->new_socket);
+	return NULL;
+}
+
 int main(int argc, char* argv[]) {
   atexit(exitFunction);
   int port = init_port(argc, argv);
-  int sockfd, new_socket, childpid;
+  int sockfd, new_socket;
   struct sockaddr_in serverAddress, clientAddress;
   
   // init socket file descriptor
@@ -323,19 +337,28 @@ int main(int argc, char* argv[]) {
 
   if (DEBUG) printf("Waiting for connections\n");
   // accept connections, multithreaded
+  pthread_t tid;
+  params* myParams = NULL;
   while (1) {
     int clientLength = sizeof(clientAddress);
     if ((new_socket = accept(sockfd, (struct sockaddr*) &clientAddress, &clientLength)) == -1) {
-      printf("Error: Failed to accept new connection\n");
+      //printf("Error: Failed to accept new connection\n");
       continue;
     }
     printf("Connection accepted from client\n");
-    if ((childpid = fork()) == 0) {
-      if (DEBUG) printf("Child created!\n");
-      close(sockfd); //close stream in child, still open in parent
-      parse_request(new_socket);
-      
-      exit(0); //exit child when done
+    myParams = (params*) malloc(sizeof(params));
+    checkMalloc(myParams);
+    myParams->sockfd = sockfd;
+    myParams->new_socket = new_socket;
+    if ((pthread_create(&tid, NULL, myThreadFun, (void*)myParams)) == 0) {
+      pthread_join(tid, NULL); // exit child when done
+    } else {
+    	perror("Error");
+    	exit(1);
+    }
+    if (myParams) {
+    	free(myParams);
+    	myParams = NULL;
     }
     printf("Disconnected from client\n");
     close(new_socket);

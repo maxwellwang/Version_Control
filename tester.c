@@ -69,7 +69,7 @@ int executeInput(int file) {
 	// execute command in buffer and insert output (if any) into testfile
 	char command[4096];
 	sprintf(command, "(cd clientDir; %s > ../testfile)", buffer); // run in clientDir
-	bzero(command + 27 + strlen(buffer), 4096 - 27 - strlen(buffer));
+	memset(command + 30 + strlen(buffer), 0, 4096 - 30 - strlen(buffer));
 	system(command);
 	free(buffer);
 	if (strcmp(code, "con") == 0) {

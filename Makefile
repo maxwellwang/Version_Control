@@ -1,5 +1,5 @@
 all: clientDir/client.c serverDir/server.c zipper.o
-	(cd clientDir; gcc -o "WTF" client.c ../zipper.o; touch hashfile); (cd serverDir; gcc -o "WTFserver" server.c ../zipper.o);
+	(cd clientDir; gcc -o "WTF" client.c ../zipper.o; touch hashfile); (cd serverDir; gcc -o "WTFserver" server.c -lpthread ../zipper.o);
 
 zipper.o: zipper.c
 	gcc -c zipper.c
