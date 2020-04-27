@@ -57,7 +57,11 @@ char * read_space(int fd) {
 
 // returns socket fd of stream, exits if fails
 int c_connect() {
-  int configfd = open("./.configure", O_RDONLY); 
+  int configfd = open("./.configure", O_RDONLY);
+  if (configfd == -1) {
+  	printf("Error: Expected to run configure before this, no .configure file found\n");
+	exit(1);
+  }
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd == -1) {
     printf("Error: Socket creation failed\n");
@@ -94,7 +98,7 @@ void hash(char* filename, char c[]) {
 	return;
 }
 
-int configure(int argc, char* argv[]) {
+void configure(int argc, char* argv[]) {
   if (argc != 4) {
     printf("Error: Expected 4 args for configure, received %d\n", argc);
     exit(1);
@@ -104,36 +108,37 @@ int configure(int argc, char* argv[]) {
   writen(fd, " ", 1);
   writen(fd, argv[3], strlen(argv[3]));
   close(fd);
+  return;
 }
-int update(int argc, char* argv[]) {
+void update(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
   }
 
 }
-int upgrade(int argc, char* argv[]) {
+void upgrade(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
   }
 
 }
-int commit(int argc, char* argv[]) {
+void commit(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
   }
 
 }
-int push(int argc, char* argv[]) {
+void push(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
   }
 
 }
-int create(int argc, char* argv[]) {
+void create(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
@@ -145,14 +150,14 @@ int create(int argc, char* argv[]) {
   writen(sockfd, " ", 1); // last space
   if (mkdir(argv[2], 0700) == -1) {
     printf("Error: %s project already exists on client\n", argv[2]);
-    return 1;
+    return;
   }
   // place received .Manifest into project dir
   close(sockfd);
   printf("Disconnected from server\n");
-  return 0;
+  return;
 }
-int destroy(int argc, char* argv[]) {
+void destroy(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
@@ -163,23 +168,28 @@ int destroy(int argc, char* argv[]) {
   writen(sockfd, " ", 1); // last space
   close(sockfd);
   printf("Disconnected from server\n");
-  return 1;
+  return;
 }
-int add(int argc, char* argv[]) {
+void add(int argc, char* argv[]) {
   if (argc != 4) {
     printf("Error: Expected 4 args, received %d\n", argc);
     exit(1);
   }
-  char manifestPath[13 + strlen(argv[2])];
-  sprintf(manifestPath, "./%s/.Manifest", argv[2]);
-  char filePath[4 + strlen(argv[2]) + strlen(argv[3])];
-  sprintf(filePath, "./%s/%s", argv[2], argv[3]);
-  if (opendir(argv[2])) { // dir exists, add to manifest if file isn't there yet
+  // argv[2] project name get rid of / if there is one
+  char* projectname = argv[2];
+  if (argv[2][strlen(argv[2]) - 1] == '/') {
+  	projectname[strlen(argv[2]) - 1] = '\0';
+  }
+  char manifestPath[13 + strlen(projectname)];
+  sprintf(manifestPath, "./%s/.Manifest", projectname);
+  char filePath[4 + strlen(projectname) + strlen(argv[3])];
+  sprintf(filePath, "./%s/%s", projectname, argv[3]);
+  if (opendir(projectname)) { // dir exists, add to manifest if file isn't there yet
   	if (access(filePath, F_OK) != -1) { // file exists, try to add to manifest
   		int manifest = open(manifestPath, O_RDWR | O_APPEND);
   		if (manifest == -1) {
   			printf("Error: Failed to open %s\n", manifestPath);
-  			return 1;
+  			return;
   		}
   		char c = '?';
   		char path[4096];
@@ -195,7 +205,7 @@ int add(int argc, char* argv[]) {
   				}
   				if (strcmp(argv[3], path) == 0) { // file already in manifest
   					printf("Error: %s file is already in manifest\n", argv[3]);
-  					return 1;
+  					return;
   				} else { // not the same file, keep going
   					length = 0;
   					memset(path, 0, 4096);
@@ -205,8 +215,9 @@ int add(int argc, char* argv[]) {
   		}
   		// add file to manifest
   		writen(manifest, "1 ", 2); // version 1
-  		writen(manifest, argv[2], strlen(argv[2])); // project name
-  		writen(manifest, filePath + 1, strlen(filePath) - 1); // file path starting with /
+  		writen(manifest, projectname, strlen(projectname)); // project name
+  		writen(manifest, "/", 1);
+  		writen(manifest, argv[3], strlen(argv[3])); // file name
   		writen(manifest, " ", 1);
   		unsigned char hashcode[4096];
   		hash(filePath, hashcode);
@@ -216,39 +227,39 @@ int add(int argc, char* argv[]) {
   		close(manifest);
   	} else { // file does not exist (this also checks if project exists), command fails
   		printf("Error: %s does not exist\n", filePath);
-  		return 1;
+  		return;
   	}
   } else if (errno == ENOENT) { // dir does not exit, command fails
-  	printf("Error: %s project does not exist on client\n", argv[2]);
-   	return 1;
+  	printf("Error: %s project does not exist on client\n", projectname);
+   	return;
   } else { // opendir failed for some other reason, command fails
   	perror("Error");
-  	return 1;
+  	return;
   }
-  return 0;
+  return;
 }
-int c_remove(int argc, char* argv[]) {
+void c_remove(int argc, char* argv[]) {
   if (argc != 4) {
     printf("Error: Expected 4 args, received %d\n", argc);
     exit(1);
   }
 
 }
-int currentversion(int argc, char* argv[]) {
+void currentversion(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
   }
 
 }
-int history(int argc, char* argv[]) {
+void history(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
   }
 
 }
-int rollback(int argc, char* argv[]) {
+void rollback(int argc, char* argv[]) {
   if (argc != 4) {
     printf("Error: Expected 4 args, received %d\n", argc);
     exit(1);
