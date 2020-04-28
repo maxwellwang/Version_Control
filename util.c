@@ -20,25 +20,6 @@ void hash(char* filename, char c[]) {
   return;
 }
 
-//whoeverse calling this should free p
-packet * parse_request(int socket){
-  //  if (DEBUG) printf("Parsing request\n");
-  packet * p = malloc(sizeof(packet));
-  checkMalloc(p);
-  int c, len;
-  read(socket, &c, 1);
-  p->code = c;
-  read_args(socket, p);
-  len = atoi(read_space(socket));
-  p->filelen = len;
-  if (len > 0) {
-    read_to_file(socket, len);
-    zip_untar();
-  }
-  return p;
-}
-
-
 //reads input until a space and returns the string
 char * read_space(int socket) {
   int num_bytes;
@@ -58,16 +39,19 @@ char * read_space(int socket) {
 
 //populates args and argc of packet
 void read_args(int socket, packet * p) {
+	//printf("in read args func\n");
   char * tmp = read_space(socket);
   int argc = atoi(tmp);
   free(tmp);
-  char ** args = malloc(argc * sizeof(char*)); // global var now
+  char ** args = malloc(argc * sizeof(char*));
   checkMalloc(args);
   p->argc = argc;
+  //printf("will read in %d args\n", argc);
   char * arg;
   int i;
   for (i = 0; i < argc; i++) {
     arg = read_space(socket);
+    //printf("read in %s\n", arg);
     args[i] = arg;
   }
   p->args = args;
@@ -189,4 +173,22 @@ void zip_send(int fd, int len, char ** paths) {
   }
   zip_tar();
   int size = zip_size();
+}
+
+//whoeverse calling this should free p
+packet * parse_request(int socket){
+  packet * p = malloc(sizeof(packet));
+  checkMalloc(p);
+  int len;
+  char c = '?';
+  read(socket, &c, 1);
+  p->code = c;
+  read_args(socket, p);
+  len = atoi(read_space(socket));
+  p->filelen = len;
+  if (len > 0) {
+   read_to_file(socket, len);
+   zip_untar();
+	}
+  return p;
 }

@@ -129,7 +129,7 @@ void destroy(int argc, char* argv[]) {
   }
   writen(sockfd, "71 ", 3); // code 7, 1 arg
   writen(sockfd, projectname, strlen(projectname)); // project name
-  writen(sockfd, " ", 1); // last space
+  writen(sockfd, " 0 ", 3); // no file
   close(sockfd);
   printf("Disconnected from server\n");
   return;
@@ -178,11 +178,10 @@ void add(int argc, char* argv[]) {
   			status = read(manifest, &c, 1);
   		}
   		// add file to manifest
-  		writen(manifest, "1 ", 2); // version 1
   		writen(manifest, projectname, strlen(projectname)); // project name
   		writen(manifest, "/", 1);
   		writen(manifest, argv[3], strlen(argv[3])); // file name
-  		writen(manifest, " ", 1);
+  		writen(manifest, " 1 ", 3); // version 1
   		unsigned char hashcode[4096];
   		hash(filePath, hashcode);
   		writen(manifest, hashcode, 32); // hashcode
@@ -315,6 +314,16 @@ void currentversion(int argc, char* argv[]) {
   }
   writen(sockfd, "81 ", 3);
   writen(sockfd, projectname, strlen(projectname));
+  writen(sockfd, " 0 ", 3); // no file
+  // read and output info
+  char c = '?';
+  int status = read(sockfd, &c, 1);
+  while (status > 0) {
+  	printf("%c", c);
+  	status = read(sockfd, &c, 1);
+  }
+  close(sockfd);
+  printf("Disconnected from server\n");
   return;
 }
 void history(int argc, char* argv[]) {

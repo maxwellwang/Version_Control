@@ -101,6 +101,7 @@ void destroy(packet * p, int socket) {
 	return;
 }
 void currentversion(packet * p, int socket) {
+	if (DEBUG) printf("reached currver\n");
 	char message[42 + strlen(p->args[0])];
 	DIR* dir = opendir(p->args[0]);
 	if (dir) { // dir exists, list its files and versions
@@ -109,46 +110,33 @@ void currentversion(packet * p, int socket) {
 		sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
 		int manifest = open(manifestPath, O_RDONLY);
 		char c = '?';
+		if(DEBUG) printf("about to read manifest\n");
 		int status = read(manifest, &c, 1);
 		while (c != '\n') {
 			read(manifest, &c, 1);
 		}
-		char version[4096];
-		int versionLength = 0;
-		memset(version, 0, 4096);
-		int inVersion = 1;
-		char filePath[4096];
-		int filePathLength = 0;
-		memset(filePath, 0, 4096);
+		int spaceNum = 0;
 		status = read(manifest, &c, 1);
-		version[versionLength++] = c;
 		while (status > 0) {
-			if (inVersion) {
-				read(manifest, &c, 1);
-				while (c != ' ') {
-					version[versionLength++] = c;
-					read(manifest, &c, 1);
+			if (DEBUG) printf("Read %c\n", c);
+			if (c == ' ') {
+				spaceNum++;
+				if (spaceNum == 1) { // write space
+					writen(socket, &c, 1);
+				} else if (spaceNum == 2) { // reached hash, skip to next line (don't write space)
+					spaceNum = 0;
+					while (c != '\n') {
+						read(manifest, &c, 1);
+					}
+					writen(socket, "\n", 1);
 				}
-				inVersion = 0;
-			} else if (c == '\n') { // end of file line, send it and reset the strings
-				writen(socket, filePath, strlen(filePath));
-				writen(socket, " ", 1);
-				writen(socket, version, strlen(version));
-				filePathLength = 0;
-				versionLength = 0;
-				memset(version, 0, 4096);
-				memset(filePath, 0, 4096);
-			} else if (c == '/') { // read file path
-				read(manifest, &c, 1);
-				filePath[filePathLength++] = c;
-				while (c != ' ') {
-					filePath[filePathLength++] = c;
-					read(manifest, &c, 1);
-				}
+			} else {
+				writen(socket, &c, 1);
 			}
-			read(manifest, &c, 1);
+			status = read(manifest, &c, 1);
 		}
 		close(manifest);
+		return;
 	} else if (errno == ENOENT) { // project does not exist, command fails
 		sprintf(message, "Error: %s project does not exist on server\n", p->args[0]);
 		writen(socket, message, strlen(message));
@@ -222,11 +210,12 @@ int handle_request(packet * p, int socket) {
 
 
 void* myThreadFun(void* vargp) {
-	sleep(1);
-	if (DEBUG) printf("Thread created!%d and %d\n", ((params*)vargp)->sockfd, ((params*)vargp)->new_socket); // *vargp is params struct
-	int sock = ((params*)vargp)->new_socket;
-	close(((params*)vargp)->sockfd); // close sockfd in thread
+	params* parameters = (params*) vargp;
+	int sock = parameters->new_socket;
+	close(parameters->sockfd); // close sockfd in thread
+	if (DEBUG) printf("about to parse request\n");
 	packet * p = parse_request(sock);
+	if (DEBUG) printf("parsed, about to handle\n");
 	handle_request(p, sock);
 	int i = 0;
 	for (; i < p->argc; i++) {
@@ -245,7 +234,7 @@ int main(int argc, char* argv[]) {
   // init socket file descriptor
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd == -1) {
-    printf("Error: Socket creation failed\n");
+    perror("Error");
     exit(1);
   }
   
@@ -257,21 +246,22 @@ int main(int argc, char* argv[]) {
 
   // bind name to socket
   if (bind(sockfd, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) == -1) {
-    printf("Error: Failed to bind to socket\n");
+    perror("Error");
     exit(1);
   }
   
   // listen for connections
   if (listen(sockfd, CONNECTION_QUEUE_SIZE) == -1) {
-    printf("Error: Failed to listen\n");
+    perror("Error");
     exit(1);
   }
 
 
   if (DEBUG) printf("Waiting for connections\n");
   // accept connections, multithreaded
-  pthread_t tid;
+  pthread_t tids[CONNECTION_QUEUE_SIZE];
   params* myParams = NULL;
+  int i = 0;
   while (1) {
     int clientLength = sizeof(clientAddress);
     if ((new_socket = accept(sockfd, (struct sockaddr*) &clientAddress, &clientLength)) == -1) {
@@ -283,8 +273,8 @@ int main(int argc, char* argv[]) {
     checkMalloc(myParams);
     myParams->sockfd = sockfd;
     myParams->new_socket = new_socket;
-    if ((pthread_create(&tid, NULL, myThreadFun, (void*)myParams)) == 0) {
-      pthread_join(tid, NULL); // exit child when done
+    if ((pthread_create(&(tids[i]), NULL, myThreadFun, (void*)myParams)) == 0) {
+      pthread_join(tids[i++], NULL); // exit child when done
     } else {
     	perror("Error");
     	exit(1);
@@ -293,8 +283,8 @@ int main(int argc, char* argv[]) {
     	free(myParams);
     	myParams = NULL;
     }
-    printf("Disconnected from client\n");
     close(new_socket);
+    printf("Disconnected from client\n");
   }
   
   return 0;
