@@ -32,7 +32,9 @@ int writen(int fd, char * buf, int n);
 //actual function used to send compressed files
 void zip_send(int fd, int len, char ** paths);
 
-
+//tar entire proj dir, for checkout
+void zip_proj(char * proj);
+  
 //remove any existing tar/directory
 void zip_init();
 

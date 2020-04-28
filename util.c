@@ -128,6 +128,14 @@ int writen(int fd, char * buf, int n) {
   return n;
 }
 
+//soley for checkout
+void zip_proj(char * proj) {
+  char buf[4096];
+  memset(buf, 0, 4096);
+  sprintf(buf, "tar -zcf _wtf_tar %s", proj);
+  system(buf);
+}
+
 //remove any existing tar/directory
 void zip_init() {
   system("rm -r _wtf_dir 2>/dev/null");
@@ -189,6 +197,6 @@ packet * parse_request(int socket){
   if (len > 0) {
    read_to_file(socket, len);
    zip_untar();
-	}
+  }
   return p;
 }

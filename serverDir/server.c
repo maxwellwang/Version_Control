@@ -55,7 +55,20 @@ int init_port(int argc, char * argv[]) {
 }
 
 
-void checkout(packet * p ) {
+void checkout(packet * p, int socket) {
+  if (mkdir(p->args[0], 0700) == -1) {
+    //tar up directory name
+    zip_proj(p->args[0]);
+    writen(socket, "01 t ", 5);
+    send_file(socket, "_wtf_tar");
+  } else { //does not exist
+    char buf[4096];
+    memset(buf, 0, 4096);
+    sprintf(buf, "rm -r %s", p->args[0]);
+    system(buf);
+    writen(socket, "01 f 0 ", 7);
+  }
+  
 }
 void update(packet * p ) {
 }
@@ -168,7 +181,7 @@ int handle_request(packet * p, int socket) {
   if (DEBUG) printf("Handling request\n");
   switch (p->code) {
   case '0':
-    checkout(p);
+    checkout(p, socket);
     break;
   case '1':
     update(p);

@@ -46,6 +46,39 @@ int c_connect() {
   return sockfd;
 }
 
+void checkout(int argc, char* argv[]) {
+  if (argc != 3) {
+    printf("Error: Expected 3 args, received %d\n", argc);
+    exit(1);
+  }
+  if (mkdir(argv[2], 0700) == -1) {
+    printf("Error: project already exists on client\n");
+    exit(1);
+  } else { //does not exist
+    int sock = c_connect();
+    char buf[4096];
+    memset(buf, 0, 4096);
+    sprintf(buf, "01 %s 0 ", argv[2]);
+    writen(sock, buf, strlen(buf));
+    
+    packet * p = parse_request(sock);
+    if (strcmp(p->args[0], "t") == 0) { 
+      memset(buf, 0, 4096);
+      //it's already unpacked apperently
+      //      sprintf(buf, "cp -r ./_wtf_dir/%s .", argv[2]);
+      system(buf);
+    } else {
+      memset(buf, 0, 4096);
+      sprintf(buf, "rm -r %s", argv[2]);
+      system(buf);
+      printf("Error: project does not exist on server\n");
+    }
+    free(p);
+    close(sock);
+    printf("Disconnected from server\n");
+  }
+  
+}
 
 void configure(int argc, char* argv[]) {
   if (argc != 4) {
@@ -64,7 +97,7 @@ void update(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
-  }
+  } 
 
 }
 void upgrade(int argc, char* argv[]) {
@@ -372,7 +405,7 @@ int main(int argc, char* argv[]) {
   if (strcmp(argv[1], "configure") == 0) {
     configure(argc, argv);
   } else if (strcmp(argv[1], "checkout") == 0) {
-    //checkout(argc, argv);
+    checkout(argc, argv);
   } else if (strcmp(argv[1], "update") == 0) {
     configure(argc, argv);
   } else if (strcmp(argv[1], "upgrade") == 0) {
