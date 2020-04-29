@@ -104,6 +104,13 @@ void upgrade(int argc, char* argv[]) {
   }
 
 }
+void compareServer(int serverManifest, char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile) {
+	char commitWrite[4096];
+	char code;
+	//sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, serverHash);
+  	writen(commitFile, commitWrite, strlen(commitWrite));
+  	return;
+}
 void commit(int argc, char* argv[]) {
   if (argc != 3) {
     printf("Error: Expected 3 args, received %d\n", argc);
@@ -143,7 +150,7 @@ void commit(int argc, char* argv[]) {
   writen(sockfd, projectname, strlen(projectname)); // project name
   writen(sockfd, " ", 1); // last space
   writen(sockfd, "0 ", 2); //no file
-  packet * p = parse_request(sock);
+  packet * p = parse_request(sockfd);
   if (strcmp(p->args[0], "p") == 0) {
     printf("Project %s does not exist on server\n", projectname);
     free(p);
@@ -165,7 +172,7 @@ void commit(int argc, char* argv[]) {
   // check if manifest versions match
   char clientManifestVersion[100], serverManifestVersion[100];
   char clientC, serverC;
-  int clientManifestVersionLength = 0, serverManifestVersion = 0;
+  int clientManifestVersionLength = 0, serverManifestVersionLength = 0;
   read(clientManifest, &clientC, 1);
   read(serverManifest, &serverC, 1);
   while (clientC != '\n') {
@@ -185,6 +192,59 @@ void commit(int argc, char* argv[]) {
   	printf("Disconnected from server\n");
   	exit(1);
   }
+  // compute live hashes for client project's files
+  int status = read(clientManifest, &clientC, 1);
+  char commitPath[11 + strlen(projectname)];
+  sprintf(commitPath, "./%s/.Commit", projectname);
+  if (access(commitPath, F_OK) != -1) { // alredy exists, remove first so we can create new one
+  	remove(commitPath);
+  }
+  int commitFile = open(commitPath, O_WRONLY | O_CREAT, 00600);
+  char version[10];
+  int versionLength = 0;
+  int versionNo;
+  char filePath[4096];
+  int filePathLength = 0;
+  unsigned char hashcode[4096];
+  char manifestHash[33];
+  int manifestHashLength = 0;
+  int sameHash = 1;
+  while (status > 0) {
+  	// read into filePath
+  	memset(filePath, 0, 4096);
+  	filePathLength = 0;
+  	while (clientC != ' ') {
+  		filePath[filePathLength++] = clientC;
+  		read(clientManifest, &clientC, 1);
+  	}
+  	// read into VersionNo
+  	memset(version, 0, 10);
+  	versionLength = 0;
+  	read(clientManifest, &clientC, 1);
+  	while (clientC != ' ') {
+  		version[versionLength++] = clientC;
+  		read(clientManifest, &clientC, 1);
+  	}
+  	versionNo = atoi(version);
+  	// at hash, compute live hash and compare
+  	hash(filePath, hashcode); // assigns hash to hashcode
+  	read(clientManifest, &clientC, 1);
+  	memset(manifestHash, 0, strlen(manifestHash));
+  	manifestHashLength = 0;
+  	while (clientC != '\n') {
+  		manifestHash[manifestHashLength++] = clientC;
+  		read(clientManifest, &clientC, 1);
+  	}
+  	sameHash = !(strcmp(hashcode, manifestHash));
+  	// decide modify, add, or nothing
+  	compareServer(serverManifest, filePath, versionNo, manifestHash, sameHash, commitFile);
+  	status = read(clientManifest, &clientC, 1);
+  	while (status > 0 && isspace(clientC)) { // read until non whitespace or end of file
+  		status = read(clientManifest, &clientC, 1);
+  	}
+  }
+  // check for delete... ------------
+  close(commitFile);
   close(serverManifest);
   close(clientManifest);
   free(p);
