@@ -109,7 +109,88 @@ void commit(int argc, char* argv[]) {
     printf("Error: Expected 3 args, received %d\n", argc);
     exit(1);
   }
-
+  // argv[2] project name get rid of / if there is one
+  char* projectname = argv[2];
+  if (argv[2][strlen(argv[2]) - 1] == '/') {
+  	projectname[strlen(argv[2]) - 1] = '\0';
+  }
+  // fail if project does not exist
+  DIR* dir = opendir(projectname);
+  if (!dir) {
+  	closedir(dir);
+  	printf("Error: %s project does not exist on client\n", projectname);
+  	exit(1);
+  }
+  closedir(dir);
+  // fail if there is nonempty .Update file or there is .Conflict file 
+  struct stat stat_record;
+  char path[11 + strlen(projectname)];
+  sprintf(path, "./%s/.Update", projectname);
+  char path2[13 + strlen(projectname)];
+  sprintf(path2, "./%s/.Conflict", projectname);
+  if(access(path, F_OK) != -1 && stat_record.st_size > 1) {
+  	printf("Error: %s exists and is nonempty\n", path);
+  	exit(1);
+  }
+  if (access(path2, F_OK) != -1) {
+  	printf("Error: %s exists\n", path2);
+  	exit(1);
+  	
+  }
+  // fetch server project's .Manifest
+  int sockfd = c_connect();
+  writen(sockfd, "31 ", 3); // code 3, 1 arg
+  writen(sockfd, projectname, strlen(projectname)); // project name
+  writen(sockfd, " ", 1); // last space
+  writen(sockfd, "0 ", 2); //no file
+  packet * p = parse_request(sock);
+  if (strcmp(p->args[0], "p") == 0) {
+    printf("Project %s does not exist on server\n", projectname);
+    free(p);
+    close(sockfd);
+    printf("Disconnected from server\n");
+    exit(1);
+  } else if (strcmp(p->args[0], "m") == 0) {
+  	printf("Project %s Manifest does not exist on server\n", projectname);
+  	free(p);
+  	close(sockfd);
+  	printf("Disconnected from server\n");
+  	exit(1);
+  }
+  // manifest fetched successfully, now compare to determine case
+  int serverManifest = open("./_wtf_dir/.Manifest", O_RDONLY);
+  char manifestPath[13 + strlen(projectname)];
+  sprintf(manifestPath, "./%s/.Manifest", projectname);
+  int clientManifest = open(manifestPath, O_RDONLY);
+  // check if manifest versions match
+  char clientManifestVersion[100], serverManifestVersion[100];
+  char clientC, serverC;
+  int clientManifestVersionLength = 0, serverManifestVersion = 0;
+  read(clientManifest, &clientC, 1);
+  read(serverManifest, &serverC, 1);
+  while (clientC != '\n') {
+  	clientManifestVersion[clientManifestVersionLength++] = clientC;
+  	read(clientManifest, &clientC, 1);
+  }
+  while (serverC != '\n') {
+  	serverManifestVersion[serverManifestVersionLength++] = serverC;
+  	read(serverManifest, &serverC, 1);
+  }
+  if (strcmp(clientManifestVersion, serverManifestVersion) != 0) { // no match, exit
+  	printf("Error: Manifest versions do not match, update local project first\n");
+  	close(serverManifest);
+  	close(clientManifest);
+  	free(p);
+  	close(sockfd);
+  	printf("Disconnected from server\n");
+  	exit(1);
+  }
+  close(serverManifest);
+  close(clientManifest);
+  free(p);
+  close(sockfd);
+  printf("Disconnected from server\n");
+  return;
 }
 void push(int argc, char* argv[]) {
   if (argc != 3) {

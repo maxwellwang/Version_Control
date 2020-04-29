@@ -18,8 +18,7 @@
 #define DEBUG 0
 
 // global vars -> the files, sockets, pointers that exit function needs
-char* g_str_bytes;
-char** g_args;
+
 
 typedef struct {
 	int sockfd;
@@ -29,8 +28,6 @@ typedef struct {
 
 void exitFunction() {
 	// free stuff and close sockets/threads... use global vars
-	free(g_str_bytes);
-	free(g_args);
 	return;
 }
 
@@ -56,7 +53,7 @@ int init_port(int argc, char * argv[]) {
 
 
 void checkout(packet * p, int socket) {
-  printf("Dir: [%s]", p->args[0]);
+  //printf("Dir: [%s]", p->args[0]);
   if (mkdir(p->args[0], 0700) == -1) {
     //tar up directory name
     send_proj(socket, p->args[0]);
@@ -73,7 +70,26 @@ void update(packet * p ) {
 }
 void upgrade(packet * p ) {
 }
-void commit_a(packet * p ) {
+void commit_a(packet * p, int socket ) {
+	char* projectname = p->args[0];
+	// send error if project doesn't exist
+	DIR* dir = opendir(projectname);
+	if (!dir) {
+		writen(socket, "01 p 0 ", 7);
+		closedir(dir);
+		return;
+	}
+	closedir(dir);
+	char* manifestPath;
+	sprintf(manifestPath, "./%s/.Manifest", projectname);
+	// send error if manifest doesn't exist in project
+	if (access(manifestPath, F_OK) == -1) {
+		writen(socket, "01 m 0 ", 7);
+		return;
+	}
+	// good to go, send manifest to client
+	send_file(socket, manifestPath);
+	return;
 }
 void commit_b(packet * p ) {
 }
@@ -189,7 +205,7 @@ int handle_request(packet * p, int socket) {
     upgrade(p);
     break;
   case '3':
-    commit_a(p);
+    commit_a(p, socket);
     break;
   case '4':
     commit_b(p);
