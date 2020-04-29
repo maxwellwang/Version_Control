@@ -4,3 +4,5 @@ Test 2
 $ ./WTF create myproject
 Test 3
 $ echo "text" > myproject/myfile; ./WTF add myproject myfile
+Test 4
+$ ./WTF commit myproject

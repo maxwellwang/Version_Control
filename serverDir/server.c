@@ -80,7 +80,7 @@ void commit_a(packet * p, int socket ) {
 		return;
 	}
 	closedir(dir);
-	char* manifestPath;
+	char manifestPath[strlen(projectname) + 15];
 	sprintf(manifestPath, "./%s/.Manifest", projectname);
 	// send error if manifest doesn't exist in project
 	if (access(manifestPath, F_OK) == -1) {
@@ -88,6 +88,7 @@ void commit_a(packet * p, int socket ) {
 		return;
 	}
 	// good to go, send manifest to client
+	if (DEBUG) printf("about to send manifest\n");
 	send_file(socket, manifestPath);
 	return;
 }

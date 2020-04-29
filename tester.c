@@ -109,11 +109,16 @@ int checkOutput(int file, int testfile, int code) {
 	char buffer[4096];
 	char filePath[] = "myproject/myfile";
 	int clientManifest, bytes, status;
+	struct stat stat_record;
 	switch (code) {
 		case 0: // configure, check if .configure file was made
 			if (access("./clientDir/.configure", F_OK) != -1) {
 				return 1;
 			}
+			break;
+		case 4:
+			stat("./testfile", &stat_record);
+			if (access("./clientDir/myproject/.Commit", F_OK) != -1 && stat_record.st_size > 1) return 1;
 			break;
 		case 6: // create, check if client and server have the dir with .Manifest in it
 			if (access("./serverDir/myproject/.Manifest", F_OK) != -1 && access("./clientDir/myproject/.Manifest", F_OK) != -1) {

@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include "../util.h"
+#define DEBUG 1
 
 // returns socket fd of stream, exits if fails
 int c_connect() {
@@ -104,12 +105,140 @@ void upgrade(int argc, char* argv[]) {
   }
 
 }
-void compareServer(int serverManifest, char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile) {
+int fileInManifest(char manifestPath[], char filePath[]) {
+	int manifest = open(manifestPath, O_RDONLY);
+	char c = '?';
+	char tempFilePath[4096];
+	memset(tempFilePath, 0, 4096);
+	int length = 0;
+	int status = read(manifest, &c, 1);
+	while (status > 0) {
+		if (c == ' ') {
+			// read file path and compare to param file path
+			memset(tempFilePath, 0, 4096);
+			length = 0;
+			read(manifest, &c, 1);
+			while (c != ' ') {
+				tempFilePath[length++] = c;
+				read(manifest, &c, 1);
+			}
+			if (strcmp(tempFilePath, filePath) == 0) { // found it, return true
+				close(manifest);
+				return 1;
+			} else { // read to newline
+				while (c != '\n') {
+					read(manifest, &c, 1);
+				}
+			}
+		}
+		status = read(manifest, &c, 1); // if file is done, status will be 0
+	}
+	close(manifest);
+	return 0;
+}
+void checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile) {
+	int serverManifest = open(serverManifestPath, O_RDONLY);
+	char c = '?', code = '?';
+	char tempFilePath[4096];
+	memset(tempFilePath, 0, 4096);
+	int length = 0;
+	char serverHash[33];
+	memset(serverHash, 0, 33);
+	int serverHashLength = 0;
+	int status = read(serverManifest, &c, 1);
+	while (status > 0) {
+		if (c == ' ') {
+			// read file path and compare
+			length = 0;
+			memset(tempFilePath, 0, 4096);
+			read(serverManifest, &c, 1);
+			while (c != ' ') {
+				tempFilePath[length++] = c;
+				read(serverManifest, &c, 1);
+			}
+			if (strcmp(tempFilePath, filePath) == 0 && !sameHash) { // check if server hash matches client hash
+				memset(serverHash, 0, 4096);
+				serverHashLength = 0;
+				read(serverManifest, &c, 1);
+				while (c != '\n') {
+					serverHash[serverHashLength++] = c;
+					read(serverManifest, &c, 1);
+				}
+				if (strcmp(manifestHash, serverHash) == 0) { // modify code detected
+					code = 'M';
+					break;
+				}
+			} else {
+				while (c != '\n') read(serverManifest, &c, 1);
+			}
+		}
+		status = read(serverManifest, &c, 1);
+	}
+	if (!fileInManifest(serverManifestPath, filePath)) { // add code detected
+		code = 'A';
+	}
+	if (code == '?') { // neither modify nor add
+		return;
+	}
 	char commitWrite[4096];
-	char code;
-	//sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, serverHash);
+	sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, manifestHash);
   	writen(commitFile, commitWrite, strlen(commitWrite));
+  	printf("%c %s\n", code, filePath);
+  	close(serverManifest);
   	return;
+}
+void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile) {
+	int serverManifest = open(serverManifestPath, O_RDONLY);
+	int clientManifest = open(clientManifestPath, O_RDONLY);
+	char c = '?';
+	char commitMessage[4096];
+	memset(commitMessage, 0, 4096);
+	char tempFilePath[4096];
+	memset(tempFilePath, 0, 4096);
+	int length = 0;
+	char serverHash[33];
+	memset(serverHash, 0, 33);
+	int serverHashLength = 0;
+	char version[10];
+	int versionLength = 0;
+	int versionNo;
+	int status = read(serverManifest, &c, 1);
+	while (status > 0) {
+		// read file path and compare
+		length = 0;
+		memset(tempFilePath, 0, 4096);
+		read(serverManifest, &c, 1);
+		while (c != ' ') {
+			tempFilePath[length++] = c;
+			read(serverManifest, &c, 1);
+		}
+		// read version
+		versionLength = 0;
+		memset(version, 0, 10);
+		while (c != ' ') {
+			version[versionLength++] = c;
+			read(serverManifest, &c, 1);
+		}
+		versionNo = atoi(version);
+		// read hash
+		serverHashLength = 0;
+		memset(serverHash, 0, 4096);
+		read(serverManifest, &c, 1);
+		while (c != '\n') {
+			serverHash[serverHashLength++] = c;
+			read(serverManifest, &c, 1);
+		}
+		if (!fileInManifest(clientManifestPath, tempFilePath)) { // delete code detected 
+			memset(commitMessage, 0, 4096);
+			sprintf(commitMessage, "D %s %d %s", tempFilePath, versionNo + 1, serverHash);
+			writen(commitFile, commitMessage, strlen(commitMessage));
+			printf("D %s\n", tempFilePath);
+		}
+		status = read(serverManifest, &c, 1);
+	}
+	close(serverManifest);
+	close(clientManifest);
+	return;
 }
 void commit(int argc, char* argv[]) {
   if (argc != 3) {
@@ -150,7 +279,9 @@ void commit(int argc, char* argv[]) {
   writen(sockfd, projectname, strlen(projectname)); // project name
   writen(sockfd, " ", 1); // last space
   writen(sockfd, "0 ", 2); //no file
+  if (DEBUG) printf("sent request for server manifest\n");
   packet * p = parse_request(sockfd);
+  if (DEBUG) printf("got server manifest\n");
   if (strcmp(p->args[0], "p") == 0) {
     printf("Project %s does not exist on server\n", projectname);
     free(p);
@@ -229,7 +360,7 @@ void commit(int argc, char* argv[]) {
   	// at hash, compute live hash and compare
   	hash(filePath, hashcode); // assigns hash to hashcode
   	read(clientManifest, &clientC, 1);
-  	memset(manifestHash, 0, strlen(manifestHash));
+  	memset(manifestHash, 0, 33);
   	manifestHashLength = 0;
   	while (clientC != '\n') {
   		manifestHash[manifestHashLength++] = clientC;
@@ -237,13 +368,14 @@ void commit(int argc, char* argv[]) {
   	}
   	sameHash = !(strcmp(hashcode, manifestHash));
   	// decide modify, add, or nothing
-  	compareServer(serverManifest, filePath, versionNo, manifestHash, sameHash, commitFile);
+  	checkMA("./_wtf_dir/.Manifest", filePath, versionNo, manifestHash, sameHash, commitFile);
   	status = read(clientManifest, &clientC, 1);
   	while (status > 0 && isspace(clientC)) { // read until non whitespace or end of file
   		status = read(clientManifest, &clientC, 1);
   	}
   }
-  // check for delete... ------------
+  // check for delete...
+  checkD("./_wtf_dir/.Manifest", manifestPath, commitFile);
   close(commitFile);
   close(serverManifest);
   close(clientManifest);
