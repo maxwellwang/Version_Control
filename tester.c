@@ -7,6 +7,7 @@
 #include <string.h>
 #include <strings.h>
 #define INITIAL_BUFFER_SIZE 4096
+#define DEBUG 1
 
 void checkMalloc(void* ptr) {
 	if (!ptr) {
@@ -66,9 +67,9 @@ int executeInput(int file) {
 		status = read(file, &c, 1);
 		charCounter++;
 	}
-	// execute command in buffer and insert output (if any) into testfile
+	// execute command in buffer
 	char command[4096];
-	sprintf(command, "(cd clientDir; %s > ../testfile)", buffer); // run in clientDir
+	sprintf(command, "(cd clientDir; %s)", buffer); // run in clientDir
 	memset(command + 30 + strlen(buffer), 0, 4096 - 30 - strlen(buffer));
 	system(command);
 	free(buffer);
@@ -104,12 +105,10 @@ int executeInput(int file) {
 	}
 }
 
-// testfile only useful if the command prints to stdout
-int checkOutput(int file, int testfile, int code) {
+int checkOutput(int file, int code) {
 	char buffer[4096];
 	char filePath[] = "myproject/myfile";
 	int clientManifest, bytes, status;
-	struct stat stat_record;
 	switch (code) {
 		case 0: // configure, check if .configure file was made
 			if (access("./clientDir/.configure", F_OK) != -1) {
@@ -117,8 +116,7 @@ int checkOutput(int file, int testfile, int code) {
 			}
 			break;
 		case 4:
-			stat("./testfile", &stat_record);
-			if (access("./clientDir/myproject/.Commit", F_OK) != -1 && stat_record.st_size > 1) return 1;
+			if (access("./clientDir/myproject/.Commit", F_OK) != -1) return 1;
 			break;
 		case 6: // create, check if client and server have the dir with .Manifest in it
 			if (access("./serverDir/myproject/.Manifest", F_OK) != -1 && access("./clientDir/myproject/.Manifest", F_OK) != -1) {
@@ -156,7 +154,7 @@ int checkOutput(int file, int testfile, int code) {
 			close(clientManifest);
 			return 1;
 			break;
-		case 10: // currentversion, check testfile to compare
+		case 10: // currentversion
 			break;
 		default:
 			return 0; // shouldn't be here
@@ -171,8 +169,7 @@ int main(int argc, char* argv[]) {
 	int status;
 	int testCounter = 1;
 	int file = open("testcases.txt", O_RDONLY);
-	int testfile = open("testfile", O_RDONLY);
-	if (file == -1 || testfile == -1) {
+	if (file == -1) {
 		perror("Error");
 		return 1;
 	}
@@ -182,7 +179,7 @@ int main(int argc, char* argv[]) {
 		if (c == '$') {
 			read(file, &c, 1); // space
 			code = executeInput(file);
-			if (checkOutput(file, testfile, code) == 1) {
+			if (checkOutput(file, code) == 1) {
 				printf("Test %d passed\n", testCounter);
 			} else {
 				printf("Test %d failed\n", testCounter);
@@ -192,10 +189,6 @@ int main(int argc, char* argv[]) {
 		status = read(file, &c, 1);
 	}
 	if (close(file) == -1) {
-		perror("Error");
-		return 1;
-	}
-	if (close(testfile) == -1) {
 		perror("Error");
 		return 1;
 	}

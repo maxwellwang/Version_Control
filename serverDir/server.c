@@ -90,6 +90,7 @@ void commit_a(packet * p, int socket ) {
 	// good to go, send manifest to client
 	if (DEBUG) printf("about to send manifest\n");
 	send_file(socket, manifestPath);
+	if (DEBUG) printf("done sending manifest\n");
 	return;
 }
 void commit_b(packet * p ) {
