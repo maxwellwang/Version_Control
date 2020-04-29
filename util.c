@@ -129,11 +129,15 @@ int writen(int fd, char * buf, int n) {
 }
 
 //soley for checkout
-void zip_proj(char * proj) {
+void send_proj(int sockfd, char * proj) {
   char buf[4096];
   memset(buf, 0, 4096);
   sprintf(buf, "tar -zcf _wtf_tar %s", proj);
   system(buf);
+  sprintf(buf, "01 t %d ", 5, zip_size());
+  writen(sockfd, buf, strlen(buf));
+  int tarfd = open("./_wtf_tar", O_RDONLY);
+  f2f(tarfd, sockfd, zip_size());
 }
 
 //remove any existing tar/directory

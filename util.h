@@ -33,7 +33,7 @@ int writen(int fd, char * buf, int n);
 void zip_send(int fd, int len, char ** paths);
 
 //tar entire proj dir, for checkout
-void zip_proj(char * proj);
+void send_proj(int fd, char * proj);
   
 //remove any existing tar/directory
 void zip_init();

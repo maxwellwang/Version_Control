@@ -56,11 +56,10 @@ int init_port(int argc, char * argv[]) {
 
 
 void checkout(packet * p, int socket) {
+  printf("Dir: [%s]", p->args[0]);
   if (mkdir(p->args[0], 0700) == -1) {
     //tar up directory name
-    zip_proj(p->args[0]);
-    writen(socket, "01 t ", 5);
-    send_file(socket, "_wtf_tar");
+    send_proj(socket, p->args[0]);
   } else { //does not exist
     char buf[4096];
     memset(buf, 0, 4096);

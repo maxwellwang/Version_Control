@@ -60,13 +60,10 @@ void checkout(int argc, char* argv[]) {
     memset(buf, 0, 4096);
     sprintf(buf, "01 %s 0 ", argv[2]);
     writen(sock, buf, strlen(buf));
-    
     packet * p = parse_request(sock);
-    if (strcmp(p->args[0], "t") == 0) { 
-      memset(buf, 0, 4096);
-      //it's already unpacked apperently
-      //      sprintf(buf, "cp -r ./_wtf_dir/%s .", argv[2]);
-      system(buf);
+    if (strcmp(p->args[0], "t") == 0) {
+      printf("Project %s checked out\n", argv[2]);
+      //idk
     } else {
       memset(buf, 0, 4096);
       sprintf(buf, "rm -r %s", argv[2]);
