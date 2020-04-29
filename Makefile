@@ -8,4 +8,4 @@ test: tester.c
 	gcc -o "WTFtest" tester.c; touch testfile
 
 clean:
-	rm -rf clientDir/WTF serverDir/WTFserver WTFtest testfile clientDir/.configure serverDir/myproject util.o clientDir/myproject clientDir/hashfile
+	rm -rf clientDir/WTF serverDir/WTFserver WTFtest testfile clientDir/.configure serverDir/myproject util.o clientDir/myproject clientDir/hashfile clientDir/_* serverDir/_*

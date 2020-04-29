@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include "../util.h"
 #define CONNECTION_QUEUE_SIZE 10
-#define DEBUG 0
+#define DEBUG 1
 
 // global vars -> the files, sockets, pointers that exit function needs
 
@@ -237,20 +237,18 @@ int handle_request(packet * p, int socket) {
 }
 
 
-void* myThreadFun(void* vargp) {
-	params* parameters = (params*) vargp;
-	int sock = parameters->new_socket;
-	close(parameters->sockfd); // close sockfd in thread
-	if (DEBUG) printf("about to parse request\n");
-	packet * p = parse_request(sock);
-	if (DEBUG) printf("parsed, about to handle\n");
-	handle_request(p, sock);
-	int i = 0;
-	for (; i < p->argc; i++) {
-	  free((p->args)[i]);
-	}
-	free(p);
-	return NULL;
+void* myThreadFun(void* sockfd) {
+  int sock = *((int *) sockfd);
+  packet * p = parse_request(sock);
+  handle_request(p, sock);
+  close(sock);
+  free(sockfd);
+  int i = 0;
+  for (; i < p->argc; i++) {
+    free((p->args)[i]);
+  }
+  free(p);
+  return NULL;
 }
 
 int main(int argc, char* argv[]) {
@@ -264,6 +262,15 @@ int main(int argc, char* argv[]) {
   if (sockfd == -1) {
     perror("Error");
     exit(1);
+  }
+  
+  int reuse = 1;
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0) {
+    perror("setsockopt(SO_REUSEADDR) failed");
+  }
+
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0) {
+    perror("setsockopt(SO_REUSEPORT) failed");
   }
   
   // make socketaddr structure
@@ -288,30 +295,22 @@ int main(int argc, char* argv[]) {
   if (DEBUG) printf("Waiting for connections\n");
   // accept connections, multithreaded
   pthread_t tids[CONNECTION_QUEUE_SIZE];
-  params* myParams = NULL;
   int i = 0;
   while (1) {
     int clientLength = sizeof(clientAddress);
     if ((new_socket = accept(sockfd, (struct sockaddr*) &clientAddress, &clientLength)) == -1) {
-      //printf("Error: Failed to accept new connection\n");
+      printf("Error: Failed to accept new connection\n");
       continue;
     }
     printf("Connection accepted from client\n");
-    myParams = (params*) malloc(sizeof(params));
-    checkMalloc(myParams);
-    myParams->sockfd = sockfd;
-    myParams->new_socket = new_socket;
-    if ((pthread_create(&(tids[i]), NULL, myThreadFun, (void*)myParams)) == 0) {
-      pthread_join(tids[i++], NULL); // exit child when done
+    int * sock = malloc(sizeof(int));
+    *sock = new_socket;
+    if ((pthread_create(&(tids[i]), NULL, myThreadFun, (void*) sock)) == 0) {
+      pthread_detach(tids[i++]);
     } else {
-    	perror("Error");
+    	error("Error");
     	exit(1);
     }
-    if (myParams) {
-    	free(myParams);
-    	myParams = NULL;
-    }
-    close(new_socket);
     printf("Disconnected from client\n");
   }
   
