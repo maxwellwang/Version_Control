@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include "../util.h"
-#define DEBUG 1
+#define DEBUG 0
 
 // returns socket fd of stream, exits if fails
 int c_connect() {
@@ -89,6 +89,7 @@ void configure(int argc, char* argv[]) {
   writen(fd, argv[3], strlen(argv[3]));
   writen(fd, " ", 1);
   close(fd);
+  printf("Successfully configured\n");
   return;
 }
 void update(int argc, char* argv[]) {
@@ -136,7 +137,7 @@ int fileInManifest(char manifestPath[], char filePath[]) {
 	close(manifest);
 	return 0;
 }
-void checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile) {
+int checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile) {
 	int serverManifest = open(serverManifestPath, O_RDONLY);
 	char c = '?', code = '?';
 	char tempFilePath[4096];
@@ -145,32 +146,50 @@ void checkMA(char serverManifestPath[], char filePath[], int versionNo, char man
 	char serverHash[33];
 	memset(serverHash, 0, 33);
 	int serverHashLength = 0;
+	char version[10];
+	memset(version, 0, 10);
+	int versionLength = 0;
+	int serverFileVersionNo;
+	read(serverManifest, &c, 1); // skip manifest version
+	while (c != '\n') read(serverManifest, &c, 1);
 	int status = read(serverManifest, &c, 1);
 	while (status > 0) {
-		if (c == ' ') {
-			// read file path and compare
-			length = 0;
-			memset(tempFilePath, 0, 4096);
+		// read file path and compare
+		length = 0;
+		memset(tempFilePath, 0, 4096);
+		read(serverManifest, &c, 1);
+		while (c != ' ') {
+			tempFilePath[length++] = c;
+			read(serverManifest, &c, 1);
+		}
+		if (strcmp(tempFilePath, filePath) == 0) { // file found
+			// read version
+			versionLength = 0;
+			memset(version, 0, 10);
 			read(serverManifest, &c, 1);
 			while (c != ' ') {
-				tempFilePath[length++] = c;
+				version[versionLength++] = c;
 				read(serverManifest, &c, 1);
 			}
-			if (strcmp(tempFilePath, filePath) == 0 && !sameHash) { // check if server hash matches client hash
-				memset(serverHash, 0, 4096);
-				serverHashLength = 0;
+			serverFileVersionNo = atoi(version);
+			memset(serverHash, 0, 4096);
+			serverHashLength = 0;
+			read(serverManifest, &c, 1);
+			while (c != '\n') {
+				serverHash[serverHashLength++] = c;
 				read(serverManifest, &c, 1);
-				while (c != '\n') {
-					serverHash[serverHashLength++] = c;
-					read(serverManifest, &c, 1);
-				}
-				if (strcmp(manifestHash, serverHash) == 0) { // modify code detected
-					code = 'M';
-					break;
-				}
-			} else {
-				while (c != '\n') read(serverManifest, &c, 1);
 			}
+			if (strcmp(manifestHash, serverHash) == 0 && !sameHash) { // modify code detected
+				code = 'M';
+				break;
+			}
+			// if server file version is geq client file version, error
+			if (serverFileVersionNo >= versionNo) {
+				printf("Error: Must sync with repository before committing changes\n");
+				return -1;
+			}
+		} else { // this isn't the same file
+			while (c != '\n') read(serverManifest, &c, 1);
 		}
 		status = read(serverManifest, &c, 1);
 	}
@@ -178,14 +197,14 @@ void checkMA(char serverManifestPath[], char filePath[], int versionNo, char man
 		code = 'A';
 	}
 	if (code == '?') { // neither modify nor add
-		return;
+		return 0;
 	}
 	char commitWrite[4096];
 	sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, manifestHash);
   	writen(commitFile, commitWrite, strlen(commitWrite));
   	printf("%c %s\n", code, filePath);
   	close(serverManifest);
-  	return;
+  	return 0;
 }
 void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile) {
 	int serverManifest = open(serverManifestPath, O_RDONLY);
@@ -202,6 +221,8 @@ void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile
 	char version[10];
 	int versionLength = 0;
 	int versionNo;
+	// read mani version on first line first
+	while (c != '\n') read(serverManifest, &c, 1);
 	int status = read(serverManifest, &c, 1);
 	while (status > 0) {
 		// read file path and compare
@@ -340,6 +361,7 @@ void commit(int argc, char* argv[]) {
   char manifestHash[33];
   int manifestHashLength = 0;
   int sameHash = 1;
+  int sa;
   while (status > 0) {
   	// read into filePath
   	memset(filePath, 0, 4096);
@@ -368,7 +390,17 @@ void commit(int argc, char* argv[]) {
   	}
   	sameHash = !(strcmp(hashcode, manifestHash));
   	// decide modify, add, or nothing
-  	checkMA("./_wtf_dir/.Manifest", filePath, versionNo, manifestHash, sameHash, commitFile);
+  	sa = checkMA("./_wtf_dir/.Manifest", filePath, versionNo, manifestHash, sameHash, commitFile);
+  	if (sa == -1) { // not synced before commit, delete .Commit
+  		close(commitFile);
+		  close(serverManifest);
+		  close(clientManifest);
+		  free(p);
+		  close(sockfd);
+	  	printf("Disconnected from server\n");
+  		remove(commitPath);
+  		return;
+  	}
   	status = read(clientManifest, &clientC, 1);
   	while (status > 0 && isspace(clientC)) { // read until non whitespace or end of file
   		status = read(clientManifest, &clientC, 1);
@@ -380,6 +412,9 @@ void commit(int argc, char* argv[]) {
   close(serverManifest);
   close(clientManifest);
   free(p);
+  // send .Commit to server and declare success
+  writen(sockfd, "31 d 0 ", 7);
+  send_file(sockfd, commitPath);
   close(sockfd);
   printf("Disconnected from server\n");
   return;
@@ -417,6 +452,7 @@ void create(int argc, char* argv[]) {
   system(buf);
   close(sockfd);
   printf("Disconnected from server\n");
+  printf("Successfully created project %s\n", projectname);
   return;
 }
 void destroy(int argc, char* argv[]) {
@@ -435,6 +471,7 @@ void destroy(int argc, char* argv[]) {
   writen(sockfd, " 0 ", 3); // no file
   close(sockfd);
   printf("Disconnected from server\n");
+  printf("Successfully destroyed project %s\n", projectname);
   return;
 }
 void add(int argc, char* argv[]) {
@@ -490,6 +527,7 @@ void add(int argc, char* argv[]) {
   		writen(manifest, hashcode, 32); // hashcode
   		writen(manifest, "\n", 1);
   		close(manifest);
+  		printf("Successfully added file %s to project %s manifest\n", argv[3], argv[2]);
   	} else { // file does not exist (this also checks if project exists), command fails
   		printf("Error: %s does not exist\n", filePath);
   		return;
@@ -565,6 +603,7 @@ void c_remove(int argc, char* argv[]) {
   					// replace manifest with temp
   					remove(manifestPath);
   					rename(tempPath, manifestPath);
+  					printf("Successfully removed file %s from project %s\n", argv[3], argv[2]);
   					return;
   				} else { // not the same file, add the line to temp
   					writen(temp, firstPart, firstPartLength);

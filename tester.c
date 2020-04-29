@@ -7,7 +7,7 @@
 #include <string.h>
 #include <strings.h>
 #define INITIAL_BUFFER_SIZE 4096
-#define DEBUG 1
+#define DEBUG 0
 
 void checkMalloc(void* ptr) {
 	if (!ptr) {
@@ -116,7 +116,7 @@ int checkOutput(int file, int code) {
 			}
 			break;
 		case 4:
-			if (access("./clientDir/myproject/.Commit", F_OK) != -1) return 1;
+			if (access("./clientDir/myproject/.Commit", F_OK) != -1 && access("./serverDir/myproject/.Commit", F_OK) != -1) return 1;
 			break;
 		case 6: // create, check if client and server have the dir with .Manifest in it
 			if (access("./serverDir/myproject/.Manifest", F_OK) != -1 && access("./clientDir/myproject/.Manifest", F_OK) != -1) {

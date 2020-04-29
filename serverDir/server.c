@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include "../util.h"
 #define CONNECTION_QUEUE_SIZE 10
-#define DEBUG 1
+#define DEBUG 0
 
 // global vars -> the files, sockets, pointers that exit function needs
 
@@ -75,22 +75,30 @@ void commit_a(packet * p, int socket ) {
 	// send error if project doesn't exist
 	DIR* dir = opendir(projectname);
 	if (!dir) {
-		writen(socket, "01 p 0 ", 7);
+		writen(socket, "31 p 0 ", 7);
 		closedir(dir);
 		return;
 	}
 	closedir(dir);
 	char manifestPath[strlen(projectname) + 15];
 	sprintf(manifestPath, "./%s/.Manifest", projectname);
+	char projectPath[strlen(projectname) + 15];
+	sprintf(projectPath, "./%s", projectname);
 	// send error if manifest doesn't exist in project
 	if (access(manifestPath, F_OK) == -1) {
-		writen(socket, "01 m 0 ", 7);
+		writen(socket, "31 m 0 ", 7);
 		return;
 	}
 	// good to go, send manifest to client
 	if (DEBUG) printf("about to send manifest\n");
+	writen(socket, "31 s 0 ", 7);
 	send_file(socket, manifestPath);
 	if (DEBUG) printf("done sending manifest\n");
+	packet* e = parse_request(socket);
+	char command[100 + strlen(projectname)];
+	sprintf(command, "cp ./_wtf_dir/.Commit %s", projectname);
+	system(command);
+	free(e);
 	return;
 }
 void commit_b(packet * p ) {
