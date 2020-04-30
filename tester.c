@@ -129,7 +129,7 @@ int checkOutput(int file, int code) {
     }
     break;
   case 7: //destroy, make sure dir in server is goned
-    if (opendir("./serverDir/myproject3") == NULL) {
+    if (opendir("./serverDir/myproject") == NULL) {
       return 1;
     }
   case 8: // add, check if client's manifest has the file

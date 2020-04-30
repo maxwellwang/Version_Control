@@ -60,7 +60,28 @@ void checkout(packet * p, int socket) {
   }
   
 }
-void update(packet * p ) {
+void update(packet * p, int socket ) {
+	char* projectname = p->args[0];
+	// send error if project doesn't exist
+	DIR* dir = opendir(projectname);
+	if (!dir) {
+		writen(socket, "01 p 0 ", 7);
+		closedir(dir);
+		return;
+	}
+	closedir(dir);
+	char manifestPath[strlen(projectname) + 15];
+	sprintf(manifestPath, "./%s/.Manifest", projectname);
+	// send error if manifest doesn't exist in project
+	if (access(manifestPath, F_OK) == -1) {
+		writen(socket, "01 m ", 5);
+		return;
+	}
+	// good to go, send manifest to client
+	if (DEBUG) printf("about to send manifest\n");
+	writen2(socket, "11 s ", 0);
+	send_file(socket, manifestPath);
+	return;
 }
 void upgrade(packet * p ) {
 }
@@ -86,7 +107,7 @@ void commit_a(packet * p, int socket ) {
 	writen2(socket, "31 s ", 0);
 	send_file(socket, manifestPath);
 	packet * e = parse_request(socket);
-	system2("cp ./_wtf_dir/.Commit %s", projectname);
+	system2("mv ./_wtf_dir/.Commit %s", projectname);
 	return;
 }
 void commit_b(packet * p ) {
@@ -190,7 +211,7 @@ int handle_request(packet * p, int socket) {
     checkout(p, socket);
     break;
   case '1':
-    update(p);
+    update(p, socket);
     break;
   case '2':
     upgrade(p);

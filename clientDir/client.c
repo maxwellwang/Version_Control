@@ -75,6 +75,50 @@ void configure(int argc, char* argv[]) {
   printf("Successfully configured\n");
   return;
 }
+int fileInManifest(char manifestPath[], char filePath[]); // prototype
+
+char* getServerHash(char serverManifestPath[], char inputPath[]) {
+	int manifest = open(serverManifestPath, O_RDONLY);
+	char filePath[4096], version[10], c = '?';
+	char* storedHash = (char*) malloc(33);
+  int filePathLength, versionLength, storedHashLength, versionNo;
+  int status = read(manifest, &c, 1);
+  while (status) {
+  	// filePath
+  	filePathLength = 0;
+  	memset(filePath, 0, 4096);
+  	// first read already done
+  	while (c != ' ') {
+  		filePath[filePathLength++] = c;
+  		read(manifest, &c, 1);
+  	}
+  	// version
+  	versionLength = 0;
+  	memset(version, 0, 4096);
+  	read(manifest, &c, 1);
+  	while (c != ' ') {
+  		version[versionLength++] = c;
+  		read(manifest, &c, 1);
+  	}
+  	versionNo = atoi(version);
+  	// hash
+  	storedHashLength = 0;
+  	memset(hash, 0, 4096);
+  	read(manifest, &c, 1);
+  	while (c != '\n') {
+  		storedHash[storedHashLength++] = c;
+  		read(manifest, &c, 1);
+  	}
+  	// line read in, if file path matches then 
+  	if (strcmp(inputPath, filePath) == 0) {
+  		return storedHash;
+  	}
+  	
+  	status = read(manifest, &c, 1);
+  }
+	close(manifest);
+	return NULL;
+}
 void update(int argc, char* argv[]) {
   check_args(argc, 3);
   // argv[2] project name get rid of / if there is one
@@ -93,16 +137,19 @@ void update(int argc, char* argv[]) {
   if (strcmp(p->args[0], "p") == 0) {
     printf("Project %s does not exist on server\n", projectname);
     free(p);
-    close(sockfd);
+    close(socket);
     printf("Disconnected from server\n");
     exit(1);
   } else if (strcmp(p->args[0], "m") == 0) {
     printf("Project %s Manifest does not exist on server\n", projectname);
     free(p);
-    close(sockfd);
+    close(socket);
     printf("Disconnected from server\n");
     exit(1);
   }
+  close(socket);
+  printf("Disconnected from server\n");
+  free(p);
   // manifest fetched successfully, now compare to determine case
   int serverManifest = open("./_wtf_dir/.Manifest", O_RDONLY);
   char manifestPath[13 + strlen(projectname)];
@@ -126,7 +173,8 @@ void update(int argc, char* argv[]) {
     serverManifestVersion[serverManifestVersionLength++] = serverC;
     read(serverManifest, &serverC, 1);
   }
-  int updateFile, conflictFile;
+  int updateFile = open(updatePath, O_WRONLY | O_CREAT | O_APPEND, 00600);
+  int conflictFile = open(conflictPath, O_WRONLY | O_CREAT | O_APPEND, 00600);
   if (strcmp(clientManifestVersion, serverManifestVersion) == 0) { // match, write blank .Update, delete .Conflict, and stop
     if (access(updatePath, F_OK) != -1) remove(updatePath);
     updateFile = open(updatePath, O_WRONLY | O_CREAT, 00600);
@@ -135,11 +183,54 @@ void update(int argc, char* argv[]) {
     printf("Up To Date\n");
     close(serverManifest);
     close(clientManifest);
-    free(p);
-    close(socket);
-    printf("Disconnected from server\n");
     return;
   }
+  close(serverManifest);
+  // begin comparing manifests
+  unsigned char liveHash[33];
+  char filePath[4096], version[10], storedHash[33], c = '?', updateMessage[4096];
+  int filePathLength, versionLength, storedHashLength, versionNo;
+  int status = read(clientManifest, &c, 1);
+  while (status) {
+  	// filePath
+  	filePathLength = 0;
+  	memset(filePath, 0, 4096);
+  	// first read already done
+  	while (c != ' ') {
+  		filePath[filePathLength++] = c;
+  		read(clientManifest, &c, 1);
+  	}
+  	// compute live hash
+  	hash(filePath, liveHash);
+  	// version
+  	versionLength = 0;
+  	memset(version, 0, 4096);
+  	read(clientManifest, &c, 1);
+  	while (c != ' ') {
+  		version[versionLength++] = c;
+  		read(clientManifest, &c, 1);
+  	}
+  	versionNo = atoi(version);
+  	// hash
+  	storedHashLength = 0;
+  	memset(hash, 0, 4096);
+  	read(clientManifest, &c, 1);
+  	while (c != '\n') {
+  		storedHash[storedHashLength++] = c;
+  		read(clientManifest, &c, 1);
+  	}
+  	// line read in, check modify, delete, and conflict
+  	if (!fileInManifest("./_wtf_dir/.Manifest", filePath)) { // delete detected
+  		printf("D %s\n", filePath);
+  		memset(updateMessage, 0, 4096);
+  		sprintf(updateMessage, "D %s %s\n", filePath, storedHash);
+  		writen(updateFile, updateMessage, strlen(updateMessage));
+  	}
+  	
+  	status = read(clientManifest, &c, 1);
+  }
+  close(clientManifest);
+  return;
 }
 void upgrade(int argc, char* argv[]) {
   check_args(argc, 3);
