@@ -742,5 +742,7 @@ int main(int argc, char* argv[]) {
 	   " history, or rollback, received %s\n", argv[1]);
     return 1;
   }
+  //sleep for 100 ms
+  usleep(1000*100);
   return 0;
 }
