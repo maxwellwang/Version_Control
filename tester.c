@@ -73,6 +73,8 @@ int executeInput(int file) {
 	memset(command + 30 + strlen(buffer), 0, 4096 - 30 - strlen(buffer));
 	system(command);
 	free(buffer);
+	sleep(1);
+			
 	if (strcmp(code, "con") == 0) {
 		return 0;
 	} else if (strcmp(code, "che") == 0) {
@@ -86,7 +88,6 @@ int executeInput(int file) {
 	} else if (strcmp(code, "pus") == 0) {
 		return 5;
 	} else if (strcmp(code, "cre") == 0) {
-		sleep(1);
 		return 6;
 	} else if (strcmp(code, "des") == 0) {
 		return 7;
