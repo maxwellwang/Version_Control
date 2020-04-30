@@ -9,7 +9,7 @@
 #define INITIAL_BUFFER_SIZE 4096
 #define DEBUG 0
 
-
+void checkMalloc(void* ptr) {
   if (!ptr) {
     printf("Malloc failed\n");
     exit(1);
@@ -74,32 +74,31 @@ int executeInput(int file) {
   system(command);
   
   free(buffer);
-				
-  if (strcmp(code, "con") == 0) {
+  if (strncmp(code, "con", 3) == 0) {
     return 0;
-  } else if (strcmp(code, "che") == 0) {
+  } else if (strncmp(code, "che", 3) == 0) {
     return 1;
-  } else if (strcmp(code, "upd") == 0) {
+  } else if (strncmp(code, "upd", 3) == 0) {
     return 2;
-  } else if (strcmp(code, "upg") == 0) {
+  } else if (strncmp(code, "upg", 3) == 0) {
     return 3;
-  } else if (strcmp(code, "com") == 0) {
+  } else if (strncmp(code, "com", 3) == 0) {
     return 4;
-  } else if (strcmp(code, "pus") == 0) {
+  } else if (strncmp(code, "pus", 3) == 0) {
     return 5;
-  } else if (strcmp(code, "cre") == 0) {
+  } else if (strncmp(code, "cre", 3) == 0) {
     return 6;
-  } else if (strcmp(code, "des") == 0) {
+  } else if (strncmp(code, "des", 3) == 0) {
     return 7;
-  } else if (strcmp(code, "add") == 0) {
+  } else if (strncmp(code, "add", 3) == 0) {
     return 8;
-  } else if (strcmp(code, "rem") == 0) {
+  } else if (strncmp(code, "rem", 3) == 0) {
     return 9;
-  } else if (strcmp(code, "cur") == 0) {
+  } else if (strncmp(code, "cur", 3) == 0) {
     return 10;
-  } else if (strcmp(code, "his") == 0) {
+  } else if (strncmp(code, "his", 3) == 0) {
     return 11;
-  } else if (strcmp(code, "rol") == 0) {
+  } else if (strncmp(code, "rol", 3) == 0) {
     return 12;
   } else {
     return -1; // shouldn't happen
@@ -130,7 +129,7 @@ int checkOutput(int file, int code) {
     }
     break;
   case 7: //destroy, make sure dir in server is goned
-    if (opendir("./serverDir/myproject") == NULL) {
+    if (opendir("./serverDir/myproject3") == NULL) {
       return 1;
     }
   case 8: // add, check if client's manifest has the file
@@ -190,9 +189,9 @@ int main(int argc, char* argv[]) {
       read(file, &c, 1); // space
       code = executeInput(file);
       if (checkOutput(file, code) == 1) {
-	printf("Test %d passed\n", testCounter);
+	printf("Test %d passed\n\n\n", testCounter);
       } else {
-	printf("Test %d failed\n", testCounter);
+	printf("Test %d failed\n\n\n", testCounter);
       }
       testCounter++;
     }

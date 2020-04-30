@@ -184,7 +184,7 @@ void testfunc(packet * p ) {
 
 int handle_request(packet * p, int socket) {
   //read in information according to protocol
-  if (DEBUG) printf("Handling request\n");
+  //  if (DEBUG) printf("Handling request\n");
   switch (p->code) {
   case '0':
     checkout(p, socket);

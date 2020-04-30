@@ -5,9 +5,9 @@ $ ./WTF create myproject
 Test 3
 $ echo "text" > myproject/myfile; ./WTF add myproject myfile
 Test 4
-$ ./WTF commit myproject
+$ ./WTF commit myproject; ./WTF create myproject2
 Test 5
-$ ./WTF create myproject2; sleep 1; rm -r myproject2; sleep 1; ./WTF checkout myproject2
+$ rm -r myproject2; ./WTF checkout myproject2; ./WTF create myproject3
 Test 6
-$ ./WTF destroy myproject2
+$ ./WTF destroy myproject3
 
