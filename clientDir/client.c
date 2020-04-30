@@ -413,7 +413,7 @@ void commit(int argc, char* argv[]) {
   close(clientManifest);
   free(p);
   // send .Commit to server and declare success
-  writen(sockfd, "31 d 0 ", 7);
+  writen(sockfd, "31 d ", 5);
   send_file(sockfd, commitPath);
   close(sockfd);
   printf("Disconnected from server\n");
