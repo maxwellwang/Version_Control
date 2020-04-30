@@ -77,6 +77,69 @@ void configure(int argc, char* argv[]) {
 }
 void update(int argc, char* argv[]) {
   check_args(argc, 3);
+  // argv[2] project name get rid of / if there is one
+  char* projectname = argv[2];
+  parse_dir(argv[2]);
+  // fail if project does not exist
+  DIR* dir = opendir(projectname);
+  if (!dir) {
+    closedir(dir);
+    printf("Error: %s project does not exist on client\n", projectname);
+    exit(1);
+  }
+  closedir(dir);
+  int socket = c_connect();
+  packet* p = parse_request(socket);
+  if (strcmp(p->args[0], "p") == 0) {
+    printf("Project %s does not exist on server\n", projectname);
+    free(p);
+    close(sockfd);
+    printf("Disconnected from server\n");
+    exit(1);
+  } else if (strcmp(p->args[0], "m") == 0) {
+    printf("Project %s Manifest does not exist on server\n", projectname);
+    free(p);
+    close(sockfd);
+    printf("Disconnected from server\n");
+    exit(1);
+  }
+  // manifest fetched successfully, now compare to determine case
+  int serverManifest = open("./_wtf_dir/.Manifest", O_RDONLY);
+  char manifestPath[13 + strlen(projectname)];
+  sprintf(manifestPath, "./%s/.Manifest", projectname);
+  char updatePath[15+ strlen(projectname)];
+  sprintf(updatePath, "./%s/.Update", projectname);
+  char conflictPath[15+ strlen(projectname)];
+  sprintf(conflictPath, "./%s/.Conflict", projectname);
+  int clientManifest = open(manifestPath, O_RDONLY);
+  // check if manifest versions match
+  char clientManifestVersion[100], serverManifestVersion[100];
+  char clientC, serverC;
+  int clientManifestVersionLength = 0, serverManifestVersionLength = 0;
+  read(clientManifest, &clientC, 1);
+  read(serverManifest, &serverC, 1);
+  while (clientC != '\n') {
+    clientManifestVersion[clientManifestVersionLength++] = clientC;
+    read(clientManifest, &clientC, 1);
+  }
+  while (serverC != '\n') {
+    serverManifestVersion[serverManifestVersionLength++] = serverC;
+    read(serverManifest, &serverC, 1);
+  }
+  int updateFile, conflictFile;
+  if (strcmp(clientManifestVersion, serverManifestVersion) == 0) { // match, write blank .Update, delete .Conflict, and stop
+    if (access(updatePath, F_OK) != -1) remove(updatePath);
+    updateFile = open(updatePath, O_WRONLY | O_CREAT, 00600);
+    close(updateFile);
+    if (access(conflictPath, F_OK) != -1) remove(conflictPath);
+    printf("Up To Date\n");
+    close(serverManifest);
+    close(clientManifest);
+    free(p);
+    close(socket);
+    printf("Disconnected from server\n");
+    return;
+  }
 }
 void upgrade(int argc, char* argv[]) {
   check_args(argc, 3);
@@ -412,7 +475,7 @@ void create(int argc, char* argv[]) {
     printf("Error: Project already exists on server\n");
     return;
   }
-  system2("cp ./_wtf_dir/.Manifest %s", projectname);
+  system2("mv ./_wtf_dir/.Manifest %s", projectname);
   close(sockfd);
   printf("Disconnected from server\n");
   printf("Successfully created project %s\n", projectname);
