@@ -49,24 +49,21 @@ int c_connect() {
 
 void checkout(int argc, char* argv[]) {
   check_args(argc, 3);
-  if (mkdir(argv[2], 0700) == -1) {
+  DIR * dir = opendir(argv[2]);
+  if (dir != NULL) {
     printf("Error: project already exists on client\n");
+    closedir(dir);
     exit(1);
   } else { //does not exist
     int sock = c_connect();
     writen2(sock, "01 %s 0 ", argv[2]);
+
     packet * p = parse_request(sock);
-    if (strcmp(p->args[0], "t") == 0) {
-      printf("Project %s successfully checked out\n", argv[2]);
-    } else {
-      system2("rm -r %s", argv[2]);
-      printf("Error: project does not exist on server\n");
-    }
-    free(p);
+    handle_response(p);
+    free(p);    
     close(sock);
     printf("Disconnected from server\n");
-  }
-  
+  }  
 }
 
 void configure(int argc, char* argv[]) {
@@ -336,7 +333,6 @@ void commit(int argc, char* argv[]) {
   int manifestHashLength = 0;
   int sameHash = 1;
   int sa;
-  printf("3\n");
   while (status > 0) {
     // read into filePath
     memset(filePath, 0, 4096);
@@ -412,6 +408,10 @@ void create(int argc, char* argv[]) {
   }
   // place received .Manifest into project dir
   packet * p = parse_request(sockfd);
+  if (p->args[0] == "e") {
+    printf("Error: Project already exists on server\n");
+    return;
+  }
   system2("cp ./_wtf_dir/.Manifest %s", projectname);
   close(sockfd);
   printf("Disconnected from server\n");
@@ -426,8 +426,18 @@ void destroy(int argc, char* argv[]) {
   parse_dir(argv[2]);
 
   writen2(sockfd, "71 %s 0 ", projectname);
+  packet * p = parse_request(sockfd);
+  if (p->args[0] == "e") {
+    printf("Error: project does not exist on server\n");
+  } else if (p->args[0] == "u") {
+    printf("Error: unexpected error orccured\n");
+  } else if (p->args[0] == "t") {
+    printf("Successfully destroyed project %s\n", projectname);  
+  } else {
+    printf("Unknown error\n");
+  }
+  free(p);
   close(sockfd);
-  printf("Successfully destroyed project %s\n", projectname);  
   printf("Disconnected from server\n");
 }
 
@@ -600,6 +610,10 @@ void currentversion(int argc, char* argv[]) {
   parse_dir(argv[2]);
   writen2(sockfd, "81 %s 0 ", projectname);
   // read and output info
+  packet * p = parse_request(sockfd);
+  handle_response(p);
+  free(p);
+  
   char c = '?';
   int status = read(sockfd, &c, 1);
   while (status > 0) {

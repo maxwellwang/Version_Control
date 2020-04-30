@@ -12,6 +12,8 @@ void hash(char* filename, char c[]);
   
 packet * parse_request(int socket);
 
+void handle_response(packet *);
+
 char * read_space(int socket);
 
 void read_args(int socket, packet * p);

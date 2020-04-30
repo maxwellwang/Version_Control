@@ -39,7 +39,7 @@ char * read_space(int socket) {
 
 //populates args and argc of packet
 void read_args(int socket, packet * p) {
-	//printf("in read args func\n");
+  //printf("in read args func\n");
   char * tmp = read_space(socket);
   int argc = atoi(tmp);
   free(tmp);
@@ -226,8 +226,57 @@ packet * parse_request(int socket){
   len = atoi(read_space(socket));
   p->filelen = len;
   if (len > 0) {
-   read_to_file(socket, len);
-   zip_untar();
+    read_to_file(socket, len);
+    zip_untar();
   }
   return p;
+}
+
+void handle_response(packet * p) {
+  char * cmd;
+  switch (p->code) {
+  case '0':
+    cmd = "checkout";
+    break;
+  case '1':
+    cmd = "update";
+    break;
+  case '2':
+    cmd = "upgrade";
+    break;
+  case '3':
+    cmd = "commit";
+    break;
+  case '4':
+    break;
+  case '5':
+    cmd = "push";
+    break;
+  case '6':
+    cmd = "create";
+    break;
+  case '7':
+    cmd = "destroy";
+    break;
+  case '8':
+    cmd = "currentversion";
+    break;
+  case '9':
+    cmd = "history";
+    break;
+  case 'a':
+    cmd = "rollback";
+    break;
+  }
+  if (strcmp(p->args[0], "t") == 0) {
+    printf("Command %s succeeded\n", cmd);
+  } else if (strcmp(p->args[0], "e") == 0) {
+    printf("Command %s failed: project does not exist on server\n", cmd);
+  } else if (strcmp(p->args[0], "m")) {
+    printf("Command %s failed: manifest does not exist on server\n", cmd);
+  } else if (strcmp(p->args[0], "u")) {
+    printf("Command %s failed: Unknown error", cmd);
+  } else {
+    printf("Command %s failed, code %s\n", cmd, p->args[0]);
+  }
 }

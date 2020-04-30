@@ -94,11 +94,9 @@ void commit_b(packet * p ) {
 void push(packet * p ) {
 }
 void create(packet * p, int socket) {
-	char message[42 + strlen(p->args[0])];
 	if (mkdir(p->args[0], 0700) == -1) { // dir already exists
-		sprintf(message, "Error: %s project already exists on server\n", p->args[0]);
-		writen(socket, message, strlen(message));
-		return;
+	  writen2(socket, "61 e 0 ", 0);
+	  return;
 	}
 	int pathLength = 12 + strlen(p->args[0]);
 	char manifestPath[pathLength];
@@ -111,27 +109,23 @@ void create(packet * p, int socket) {
 	return;
 }
 void destroy(packet * p, int socket) {
-	DIR* dir = opendir(p->args[0]);
-	char message[42 + strlen(p->args[0]) + strlen(strerror(ENOENT))];
-	if (dir) { // dir exists, delete it
-		closedir(dir);
-		system2("rm -r %s", p->args[0]);
-	} else if (errno == ENOENT) { // project does not exist, command fails
-		sprintf(message, "Error: %s project does not exist on server\n", p->args[0]);
-		writen(socket, message, strlen(message));
-		return;
-	} else { // failed for some other reason, command fails
-		sprintf(message, "Error: %s\n", strerror(errno));
-		writen(socket, message, strlen(message));
-		return;
-	}
-	return;
+  DIR* dir = opendir(p->args[0]);
+  if (dir) { // dir exists, delete it
+    closedir(dir);
+    system2("rm -r %s", p->args[0]);
+    writen2(socket, "71 t 0 ", 0);
+  } else if (errno == ENOENT) { // project does not exist, command fails
+    writen2(socket, "71 e 0 ", 0);
+  } else { // failed for some other reason, command fails
+    writen2(socket, "71 u 0 ", 0);
+  }
+  return;
 }
 void currentversion(packet * p, int socket) {
 	if (DEBUG) printf("reached currver\n");
-	char message[42 + strlen(p->args[0])];
 	DIR* dir = opendir(p->args[0]);
 	if (dir) { // dir exists, list its files and versions
+	  writen2(socket, "81 t 0 ", 0);
 		int pathLength = 12 + strlen(p->args[0]);
 		char manifestPath[pathLength];
 		sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
@@ -165,12 +159,10 @@ void currentversion(packet * p, int socket) {
 		close(manifest);
 		return;
 	} else if (errno == ENOENT) { // project does not exist, command fails
-		sprintf(message, "Error: %s project does not exist on server\n", p->args[0]);
-		writen(socket, message, strlen(message));
+	  writen2(socket, "81 e 0 ", 0);
 		return;
 	} else {
-		sprintf(message, "Error: %s\n", strerror(errno));
-		writen(socket, message, strlen(message));
+	  writen2(socket, "81 u 0 ", 0);
 		return;
 	}
 	return;

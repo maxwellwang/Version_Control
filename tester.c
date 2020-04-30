@@ -9,7 +9,7 @@
 #define INITIAL_BUFFER_SIZE 4096
 #define DEBUG 0
 
-void checkMalloc(void* ptr) {
+
   if (!ptr) {
     printf("Malloc failed\n");
     exit(1);
