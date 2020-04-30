@@ -72,6 +72,7 @@ int executeInput(int file) {
   sprintf(command, "(cd clientDir; %s)", buffer); // run in clientDir
   memset(command + 30 + strlen(buffer), 0, 4096 - 30 - strlen(buffer));
   system(command);
+  
   free(buffer);
 				
   if (strcmp(code, "con") == 0) {
@@ -129,11 +130,7 @@ int checkOutput(int file, int code) {
     }
     break;
   case 7: //destroy, make sure dir in server is goned
-    if (mkdir("./serverDir/myproject", 0700) != -1) { //creates dir --> it was deleted
-      char buf[4096];
-      memset(buf, 0, 4096);
-      sprintf(buf, "rm -r %s", "./serverDir/myproject");
-      system(buf);
+    if (opendir("./serverDir/myproject") == NULL) {
       return 1;
     }
   case 8: // add, check if client's manifest has the file

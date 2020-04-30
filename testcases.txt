@@ -7,7 +7,7 @@ $ echo "text" > myproject/myfile; ./WTF add myproject myfile
 Test 4
 $ ./WTF commit myproject
 Test 5
-$ rm -r myproject; ./WTF checkout myproject
+$ ./WTF create myproject2; rm -r myproject2; ./WTF checkout myproject2
 Test 6
-$ ./WTF destroy myproject
+$ ./WTF destroy myproject2
 

@@ -53,15 +53,9 @@ int init_port(int argc, char * argv[]) {
 
 
 void checkout(packet * p, int socket) {
-  //printf("Dir: [%s]", p->args[0]);
-  if (mkdir(p->args[0], 0700) == -1) {
-    //tar up directory name
+  if (opendir(p->args[0]) != NULL) {
     send_proj(socket, p->args[0]);
   } else { //does not exist
-    char buf[4096];
-    memset(buf, 0, 4096);
-    sprintf(buf, "rm -r %s", p->args[0]);
-    system(buf);
     writen(socket, "01 f 0 ", 7);
   }
   
@@ -89,7 +83,10 @@ void commit_a(packet * p, int socket ) {
 	}
 	// good to go, send manifest to client
 	if (DEBUG) printf("about to send manifest\n");
+	writen2(socket, "31 s ", 0);
 	send_file(socket, manifestPath);
+	packet * e = parse_request(socket);
+	system2("cp ./_wtf_dir/.Commit %s", projectname);
 	return;
 }
 void commit_b(packet * p ) {
@@ -118,10 +115,7 @@ void destroy(packet * p, int socket) {
 	char message[42 + strlen(p->args[0]) + strlen(strerror(ENOENT))];
 	if (dir) { // dir exists, delete it
 		closedir(dir);
-		char buf[4096];
-		memset(buf, 0, 4096);
-		sprintf(buf, "rm -r %s", p->args[0]);
-		system(buf);
+		system2("rm -r %s", p->args[0]);
 	} else if (errno == ENOENT) { // project does not exist, command fails
 		sprintf(message, "Error: %s project does not exist on server\n", p->args[0]);
 		writen(socket, message, strlen(message));

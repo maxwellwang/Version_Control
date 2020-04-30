@@ -57,7 +57,7 @@ void checkout(int argc, char* argv[]) {
     writen2(sock, "01 %s 0 ", argv[2]);
     packet * p = parse_request(sock);
     if (strcmp(p->args[0], "t") == 0) {
-      printf("Project %s checked out\n", argv[2]);
+      printf("Project %s successfully checked out\n", argv[2]);
     } else {
       system2("rm -r %s", argv[2]);
       printf("Error: project does not exist on server\n");
@@ -79,18 +79,10 @@ void configure(int argc, char* argv[]) {
   return;
 }
 void update(int argc, char* argv[]) {
-  if (argc != 3) {
-    printf("Error: Expected 3 args, received %d\n", argc);
-    exit(1);
-  } 
-
+  check_args(argc, 3);
 }
 void upgrade(int argc, char* argv[]) {
-  if (argc != 3) {
-    printf("Error: Expected 3 args, received %d\n", argc);
-    exit(1);
-  }
-
+  check_args(argc, 3);
 }
 
 int fileInManifest(char manifestPath[], char filePath[]) {
@@ -124,6 +116,7 @@ int fileInManifest(char manifestPath[], char filePath[]) {
   close(manifest);
   return 0;
 }
+
 int checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile) {
   int serverManifest = open(serverManifestPath, O_RDONLY);
   char c = '?', code = '?';
@@ -193,6 +186,7 @@ int checkMA(char serverManifestPath[], char filePath[], int versionNo, char mani
   close(serverManifest);
   return 0;
 }
+
 void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile) {
   int serverManifest = open(serverManifestPath, O_RDONLY);
   int clientManifest = open(clientManifestPath, O_RDONLY);
@@ -248,6 +242,7 @@ void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile
   close(clientManifest);
   return;
 }
+
 void commit(int argc, char* argv[]) {
   check_args(argc, 3);
   // argv[2] project name get rid of / if there is one
@@ -341,6 +336,7 @@ void commit(int argc, char* argv[]) {
   int manifestHashLength = 0;
   int sameHash = 1;
   int sa;
+  printf("3\n");
   while (status > 0) {
     // read into filePath
     memset(filePath, 0, 4096);
@@ -398,6 +394,7 @@ void commit(int argc, char* argv[]) {
   printf("Disconnected from server\n");
   return;
 }
+
 void push(int argc, char* argv[]) {
   check_args(argc, 3);
 
@@ -419,8 +416,8 @@ void create(int argc, char* argv[]) {
   close(sockfd);
   printf("Disconnected from server\n");
   printf("Successfully created project %s\n", projectname);
-  return;
 }
+
 void destroy(int argc, char* argv[]) {
   check_args(argc, 3);
   int sockfd = c_connect();
@@ -430,10 +427,10 @@ void destroy(int argc, char* argv[]) {
 
   writen2(sockfd, "71 %s 0 ", projectname);
   close(sockfd);
+  printf("Successfully destroyed project %s\n", projectname);  
   printf("Disconnected from server\n");
-  printf("Successfully destroyed project %s\n", projectname);
-  return;
 }
+
 void add(int argc, char* argv[]) {
   check_args(argc, 4);
   // argv[2] project name get rid of / if there is one
@@ -496,6 +493,7 @@ void add(int argc, char* argv[]) {
   }
   return;
 }
+
 void c_remove(int argc, char* argv[]) {
   check_args(argc, 4);
   // argv[2] project name get rid of / if there is one
@@ -593,6 +591,7 @@ void c_remove(int argc, char* argv[]) {
   }
   return;
 }
+
 void currentversion(int argc, char* argv[]) {
   check_args(argc, 3);
   int sockfd = c_connect();
@@ -608,12 +607,15 @@ void currentversion(int argc, char* argv[]) {
     status = read(sockfd, &c, 1);
   }
   close(sockfd);
+  printf("Current version successfully completed");
   printf("Disconnected from server\n");
   return;
 }
+
 void history(int argc, char* argv[]) {
   check_args(argc, 3);
 }
+
 void rollback(int argc, char* argv[]) {
   check_args(argc, 4);
 }
