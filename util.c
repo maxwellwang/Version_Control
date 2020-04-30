@@ -77,6 +77,33 @@ void checkMalloc(void* ptr) {
   }
 }
 
+char * parse_dir(char * path) {
+  if (path[strlen(path) - 1] == '/') {
+    path[strlen(path) - 1] = 0;
+  }
+  return path;
+}
+
+void check_args(int given, int target) {
+  if (given != target) {
+    printf("Error: Expected %d args, received %d\n", target, given);
+    exit(1);
+  }
+}
+
+void system2(char * fstr, char * arg) {
+  char buf[4096];
+  memset(buf, 0, 4096);
+  sprintf(buf, fstr, arg);
+  system(buf);
+}
+
+void writen2(int sock, char * fstr, char * arg) {
+  char buf[4096];
+  memset(buf, 0, 4096);
+  sprintf(buf, fstr, arg);
+  writen(sock, buf, strlen(buf));
+}
 
 //read from one fd to another, for len bytes
 void f2f(int fd1, int fd2, int len) {

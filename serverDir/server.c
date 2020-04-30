@@ -118,6 +118,10 @@ void destroy(packet * p, int socket) {
 	char message[42 + strlen(p->args[0]) + strlen(strerror(ENOENT))];
 	if (dir) { // dir exists, delete it
 		closedir(dir);
+		char buf[4096];
+		memset(buf, 0, 4096);
+		sprintf(buf, "rm -r %s", p->args[0]);
+		system(buf);
 	} else if (errno == ENOENT) { // project does not exist, command fails
 		sprintf(message, "Error: %s project does not exist on server\n", p->args[0]);
 		writen(socket, message, strlen(message));

@@ -22,6 +22,14 @@ void read_to_file(int socket, int len);
 
 void checkMalloc(void* ptr);
 
+char * parse_dir(char *);
+
+void check_args(int, int);
+
+void system2(char *, char *);
+
+void writen2(int, char *, char *);
+
 //read from one fd to another, for len bytes
 void f2f(int fd1, int fd2, int len);
 //can only send 1 file!!
