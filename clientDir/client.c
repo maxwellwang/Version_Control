@@ -441,6 +441,7 @@ void add(int argc, char* argv[]) {
   check_args(argc, 4);
   // argv[2] project name get rid of / if there is one
   char* projectname = parse_dir(argv[2]);
+  if (DEBUG) printf("projectname: %s\n", projectname);
   char manifestPath[13 + strlen(projectname)];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   char filePath[4 + strlen(projectname) + strlen(argv[3])];

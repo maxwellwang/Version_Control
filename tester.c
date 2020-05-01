@@ -7,75 +7,10 @@
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#define INITIAL_BUFFER_SIZE 4096
 #define DEBUG 0
 
-void checkMalloc(void* ptr) {
-  if (!ptr) {
-    printf("Malloc failed\n");
-    exit(1);
-  }
-}
-
-// returns # for which command it is
-/*
-  configure 0
-  checkout 1
-  update 2
-  upgrade 3
-  commit 4
-  push 5
-  create 6
-  destroy 7
-  add 8
-  remove 9
-  currentversion 10
-  history 11
-  rollback 12
-*/
-int executeInput(int file) {
-  char* buffer = (char*) malloc(INITIAL_BUFFER_SIZE);
-  int length = 0, size = INITIAL_BUFFER_SIZE;
-  checkMalloc(buffer);
-  bzero(buffer, INITIAL_BUFFER_SIZE);
-  char c = '?';
-  char* nextBuffer = NULL;
-  int status = read(file, &c, 1);
-  int charCounter = 1;
-  char code[] = "???";
-  int getCode = 0;
-  int j = 0;
-  while (status && c != '\n') {
-    if (length + 1 > size) {
-      // double size
-      size *= 2;
-      nextBuffer = (char*) malloc(size);
-      checkMalloc(nextBuffer);
-      memcpy(nextBuffer, buffer, length);
-      free(buffer);
-      buffer = nextBuffer;
-      nextBuffer = NULL;
-    }
-    *(buffer+length) = c;
-    length++;
-    if (length >= 7 && strncmp("./WTF ", buffer + length - 7, 6) == 0) {
-      getCode = 3;
-    }
-    if (getCode > 0) {
-      code[j++] = c;
-      getCode--;
-    }
-    status = read(file, &c, 1);
-    charCounter++;
-  }
-  // execute command in buffer
-  char command[4096];
-  sprintf(command, "(cd clientDir; %s)", buffer); // run in clientDir
-  memset(command + 30 + strlen(buffer), 0, 4096 - 30 - strlen(buffer));
-  system(command);
-  
-  free(buffer);
-  if (strncmp(code, "con", 3) == 0) {
+int codeToNum(char code[]) {
+	if (strncmp(code, "con", 3) == 0) {
     return 0;
   } else if (strncmp(code, "che", 3) == 0) {
     return 1;
@@ -103,12 +38,43 @@ int executeInput(int file) {
     return 12;
   } else {
     return -1; // shouldn't happen
-  }
+    }
 }
 
-int checkOutput(int file, int code) {
+int runAndCheck(char command[]) {
+  char clientCommand[4096];
+  memset(clientCommand, 0, 4096);
+  sprintf(clientCommand, "(cd clientDir; %s)", command);
+  system(clientCommand);
+  if (strncmp("./WTF", command, 5) != 0 && strncmp(" ./WTF", command, 6) != 0) return 1; // not WTF command
+  // get args
+  int argc = 0;
+  char argv[10][4096];
+  // Extract the first token
+  char copy[4096];
+  strncpy(copy, command, 4096);
+  char * token = strtok(copy, " ");
+  // loop through the string to extract all other tokens
+  while( token != NULL ) {
+  	strcpy(argv[argc++], token);
+  	token = strtok(NULL, " ");
+  }
+  char code3[4];
+  memcpy(code3, argv[1], 3);
+  code3[3] = '\0';
+  int code = codeToNum(code3);
+  if (code != 0) { // make sure projectname doesn't end in /
+  	if (argv[1][strlen(argv[1]) - 1] == '/') {
+  		argv[1][strlen(argv[1]) - 1] = 0;
+  	}
+  }
   char buffer[4096];
-  char filePath[] = "myproject/myfile";
+  char filePath[4096];
+  char serverProjectPath[4096];
+  char clientManifestPath[4096];
+  char serverManifestPath[4096];
+  char serverCommitPath[4096];
+  char clientCommitPath[4096];
   int clientManifest, bytes, status;
   switch (code) {
   case 0: // configure, check if .configure file was made
@@ -117,24 +83,37 @@ int checkOutput(int file, int code) {
     }
     break;
   case 1: //same checks as create
-    if (access("./serverDir/myproject/.Manifest", F_OK) != -1 && access("./clientDir/myproject/.Manifest", F_OK) != -1) {
+  	sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
+  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    if (access(serverManifestPath, F_OK) != -1 && access(clientManifestPath, F_OK) != -1) {
       return 1;
     }
     break;
   case 4:
-    if (access("./clientDir/myproject/.Commit", F_OK) != -1 && access("./serverDir/myproject/.Commit", F_OK) != -1) return 1;
+  	sprintf(serverCommitPath, "./serverDir/%s/.Commit", argv[2]);
+  	sprintf(clientCommitPath, "./clientDir/%s/.Commit", argv[2]);
+    if (access(clientCommitPath, F_OK) != -1 && access(serverCommitPath, F_OK) != -1) return 1;
     break;
   case 6: // create, check if client and server have the dir with .Manifest in it
-    if (access("./serverDir/myproject/.Manifest", F_OK) != -1 && access("./clientDir/myproject/.Manifest", F_OK) != -1) {
+    sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
+    sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    if (access(serverManifestPath, F_OK) != -1 && access(clientManifestPath, F_OK) != -1) {
       return 1;
     }
     break;
-  case 7: //destroy, make sure dir in server is gone
-    if (opendir("./serverDir/myproject") == NULL) {
-      return 1;
+  case 7: // destroy, make sure dir in server is gone
+  	sprintf(serverProjectPath, "./serverDir/%s", argv[2]);
+  	DIR* dir = opendir(serverProjectPath);
+    if (dir) {
+    	closedir(dir);
+      return 0;
     }
+    closedir(dir);
+    return 1;
   case 8: // add, check if client's manifest has the file
-    clientManifest = open("./clientDir/myproject/.Manifest", O_RDONLY);
+  	sprintf(filePath, "%s/%s", argv[2], argv[3]);
+  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    clientManifest = open(clientManifestPath, O_RDONLY);
     bytes = 0;
     status = read(clientManifest, buffer + bytes, 1);
     bytes++;
@@ -148,8 +127,10 @@ int checkOutput(int file, int code) {
     }
     close(clientManifest);
     break;
-  case 9:
-    clientManifest = open("./clientDir/myproject/.Manifest", O_RDONLY);
+  case 9: // remove, check if client manifest lacks the file
+  	sprintf(filePath, "%s/%s", argv[2], argv[3]);
+  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    clientManifest = open(clientManifestPath, O_RDONLY);
     bytes = 0;
     status = read(clientManifest, buffer + bytes, 1);
     bytes++;
@@ -172,35 +153,45 @@ int checkOutput(int file, int code) {
   return 0;
 }
 
-int main(int argc, char* argv[]) {
-  char c = '?';
-  int size = INITIAL_BUFFER_SIZE;
-  int length = 0;
-  int status;
+int main() {
   int testCounter = 1;
   int file = open("testcases.txt", O_RDONLY);
-  if (file == -1) {
-    perror("Error");
-    return 1;
-  }
-  int code;
-  status = read(file, &c, 1);
+  char c = '?';
+  char command[4096];
+  int commandLength = 0;
+  int numCommands;
+  int status = read(file, &c, 1); 
   while (status) {
     if (c == '$') {
-      read(file, &c, 1); // space
-      code = executeInput(file);
-      if (checkOutput(file, code) == 1) {
-	printf("Test %d passed\n\n\n", testCounter);
-      } else {
-	printf("Test %d failed\n\n\n", testCounter);
-      }
-      testCounter++;
+    	printf("Test %d:\n", testCounter);
+    	read(file, &c, 1); // space
+    	numCommands = 0;
+      	// parse commands and check results
+	  	while (c != '\n') {
+	  		numCommands++;
+		    // read until ; or \n to get command
+		    memset(command, 0, 4096);
+		    commandLength = 0;
+		    //if (numCommands > 1) read(file, &c, 1); // extra space
+	        read(file, &c, 1);
+	        while (c != '\n' && c != ';') {
+		      	command[commandLength++] = c;
+		      	read(file, &c, 1);
+		    }
+		    printf ("Command: %s\n", command);
+		    if (runAndCheck(command) == 1) {
+		    	printf("Command successful\n");
+		    } else {
+		    	printf("Command failed\n");
+		    	printf("Test %d failed\n", testCounter);
+		    	return EXIT_FAILURE;
+		    }
+		 }
+		 printf("Test %d passed\n\n\n", testCounter);
+      	 testCounter++;
     }
     status = read(file, &c, 1);
   }
-  if (close(file) == -1) {
-    perror("Error");
-    return 1;
-  }
-  return 0;
+  close(file);
+  return EXIT_SUCCESS;
 }
