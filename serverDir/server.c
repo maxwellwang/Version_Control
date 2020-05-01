@@ -93,7 +93,48 @@ void commit_a(packet * p, int socket ) {
 }
 void commit_b(packet * p ) {
 }
-void push(packet * p ) {
+void push(packet * p, int socket ) {
+  DIR* dir = opendir(p->args[0]);
+  if (dir == NULL) {
+    writen2(socket, "51 e 0 ", 0);
+    return;
+  } else {
+    closedir(dir);
+  }
+  //ensure .Commit matches
+  char path[4096];
+  sprintf(path, "./%s/.Commit", p->args[2]);
+  char * serverC = readFile(path);
+  char * clientC = readFile("./_wtf_dir/.Commit");
+  int b = strcmp(serverC, clientC);
+  free(serverC);
+  free(clientC);  
+  if (b != 0) {
+    writen2(socket, "51 c 0 ", 0);
+    return;
+  } else {
+    writen2(socket, "51 i 0 ", 0);
+  }
+  //move to backup dir. if push ultimately fails, restore it
+  system3("tar -zcf .TODOv%s %s", p->args[2], p->args[2]);
+  //restore it
+  //system2("tar -xf .TODOv%s", p->args[2]);
+  //system2("rm .TODOv%s", p->args[2]);
+  
+  //recieve files needed (add and modified)
+  packet * p2 = parse_request(socket);
+  //update all files from _wtf_dir
+  system2("cd _wtf_dir && cp -rlf . ../%s", p->args[2]);
+
+  //delete all files to be deleted
+  //TODO
+
+  //update project/file versions, hashes, status codes, expire .Commit
+  //TODO
+  system2("rm %s/.*Commit", p->args[2]);
+
+  //send back success
+  writen2(socket, "51 t 0 ", 0);
 }
 void create(packet * p, int socket) {
   if (mkdir(p->args[0], 0700) == -1) { // dir already exists
@@ -204,7 +245,7 @@ int handle_request(packet * p, int socket) {
     commit_b(p);
     break;
   case '5':
-    push(p);
+    push(p, socket);
     break;
   case '6':
     create(p, socket);

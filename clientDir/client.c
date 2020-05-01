@@ -391,7 +391,24 @@ void commit(int argc, char* argv[]) {
 
 void push(int argc, char* argv[]) {
   check_args(argc, 3);
+  char commitPath[4096];
+  sprintf(commitPath, "%s/.Commit", argv[2]);
+  if(access(commitPath, F_OK) == -1) {
+    printf("Error: no commits found\n");
+    return;
+  }
+  int sock = c_connect();
+  writen2(sock, "51 %s ", argv[2]);
+  send_file(sock, commitPath);
+  //initial check of project & commit
+  handle_response(sock);
+  //send files over
 
+  //recieve success message
+  handle_response(sock);
+  close(sock);
+  printf("Disconnected from server\n");
+  return;
 }
 void create(int argc, char* argv[]) {
   check_args(argc, 3);

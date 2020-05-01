@@ -98,6 +98,13 @@ void system2(char * fstr, char * arg) {
   system(buf);
 }
 
+void system3(char * fstr, char * arg, char * arg2) {
+  char buf[4096];
+  memset(buf, 0, 4096);
+  sprintf(buf, fstr, arg, arg2);
+  system(buf);
+}
+
 void writen2(int sock, char * fstr, char * arg) {
   char buf[4096];
   memset(buf, 0, 4096);
@@ -277,6 +284,8 @@ void handle_response(int sock) {
     return;
   } else if (strcmp(p->args[0], "e") == 0) {
     printf("Command %s failed: project does not exist on server\n", cmd);
+  } else if (strcmp(p->args[0], "e") == 0) {
+    printf("Command %s failed: commit does not match server\n", cmd);
   } else if (strcmp(p->args[0], "f") == 0) {
     printf("Command %s failed: project already exists on server\n", cmd);
   } else if (strcmp(p->args[0], "m") == 0) {
@@ -292,7 +301,40 @@ void handle_response(int sock) {
   exit(1);
 }
 
+char * readFile(char * filename) {
+  int buff_size = 4096;
+  char * huff_buffer = (char*)malloc(buff_size);
+  if (!huff_buffer) {
+    printf("Error: Malloc failed\n");
+    exit(EXIT_FAILURE);
+  }
+  memset(huff_buffer, 0, 4096);
+     
+  int huff_read = 0;
+  int huff_fd = open(filename, O_RDONLY);
+  int huff_status;
 
+  do {
+    huff_status = read(huff_fd, huff_buffer+huff_read, buff_size-1-huff_read);
+    huff_read += huff_status;
+    if (huff_status == 0) {
+      break;
+    }
+    char * huff_tmp = (char*)malloc(buff_size*2);
+    if (!huff_tmp) {
+      printf("Error: Malloc failed\n");
+      exit(EXIT_FAILURE);
+    }
+    memset(huff_tmp, 0, buff_size*2);
+    memcpy(huff_tmp, huff_buffer, huff_read);
+    free(huff_buffer);
+    huff_buffer = huff_tmp;
+    buff_size *= 2;
+  }
+  while (huff_status > 0);
+  close(huff_fd);
+  return huff_buffer;
+}
 
 
 /*

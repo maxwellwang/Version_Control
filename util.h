@@ -60,6 +60,7 @@ void zip_untar();
 //get size of tar (used for when sending)
 int zip_size();
 
+char * readFile(char * filename);
 //manifest stuff
 
 char* getServerHash(char serverManifestPath[], char inputPath[]);
