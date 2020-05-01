@@ -16,6 +16,8 @@ void handle_response(int);
 
 char * read_space(int socket);
 
+char * read_char(int socket, char c);
+
 void read_args(int socket, packet * p);
 
 void f2f(int fd1, int fd2, int len);
@@ -47,6 +49,12 @@ void send_proj(int fd, char * proj);
   
 //remove any existing tar/directory
 void zip_init();
+
+char * get_file(char * path);
+
+char * get_dir(char * path);
+
+void zip_add2(char * path);
 
 //add file to tar
 void zip_add(char * path);

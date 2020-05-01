@@ -393,6 +393,14 @@ void push(int argc, char* argv[]) {
   check_args(argc, 3);
   char commitPath[4096];
   sprintf(commitPath, "%s/.Commit", argv[2]);
+
+  //create and send tar w/ the files
+  char * commit = readFile(commitPath);
+  if (strlen(commit) <= 0) {
+    printf("Error: nothing to commit!\n");
+    return;
+  }
+  
   if(access(commitPath, F_OK) == -1) {
     printf("Error: no commits found\n");
     return;
@@ -403,7 +411,52 @@ void push(int argc, char* argv[]) {
   //initial check of project & commit
   handle_response(sock);
   //send files over
+  printf("Got here\n");
+  
 
+  char * tok;
+  char code;
+  char * path;
+  char * hash;
+  int version;
+  int first = 1;
+  zip_init();
+  while (1) {
+    tok = strtok(first == 1 ? commit : NULL, " \n");
+    first = 0;
+    if (tok == NULL) {
+      break;
+    }
+    code = tok[0];
+    tok = strtok(NULL, " \n");
+    path = tok;
+    tok = strtok(NULL, " \n");
+    version = atoi(tok);
+    tok = strtok(NULL, " \n");
+    hash = tok;
+    //    printf("C[%c]P[%s]V[%d]H[%s]\n", code, path, version, hash);
+    zip_add2(path);
+    //set permissions so we know to delete
+    if (code == 'A') {
+      system2("chmod 700 ./_wtf_dir/%s", path);
+    }
+  }
+  zip_tar();
+  writen2(sock, "50 ", 0);
+  char * size = malloc(64);
+  memset(size, 0, 64);
+  sprintf(size, "%d", zip_size());
+  writen(sock, size, strlen(size));
+  free(size);
+  writen(sock, " ", 1);
+  int tarfd = open("./_wtf_tar", O_RDONLY);
+  f2f(tarfd, sock, zip_size());
+  close(tarfd);
+  free(commit);
+  return;
+    
+
+  
   //recieve success message
   handle_response(sock);
   close(sock);
@@ -413,12 +466,16 @@ void push(int argc, char* argv[]) {
 void create(int argc, char* argv[]) {
   check_args(argc, 3);
   char* projectname = parse_dir(argv[2]);
-  if (mkdir(projectname, 0700) == -1) {
+  if (opendir(projectname) != NULL) {
     printf("Error: %s project already exists on client\n", argv[2]);
     return;
   }
   
-  int sockfd = c_connect();  
+  int sockfd = c_connect();
+  if (mkdir(projectname, 0700) == -1) {
+    printf("Error: could not create project %s\n", argv[2]);
+    return;
+  }
   writen2(sockfd, "61 %s 0 ", projectname);
 
   handle_response(sockfd);  

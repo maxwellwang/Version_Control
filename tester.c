@@ -194,5 +194,6 @@ int main() {
     status = read(file, &c, 1);
   }
   close(file);
+  system("killall WTFserver");
   return EXIT_SUCCESS;
 }

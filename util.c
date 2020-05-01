@@ -36,6 +36,11 @@ char * read_space(int socket) {
   return buf;
 }
 
+//reads input until particular char
+char * read_ws(int socket, char c) {
+  return NULL;
+}
+
 
 //populates args and argc of packet
 void read_args(int socket, packet * p) {
@@ -161,6 +166,41 @@ int writen(int fd, char * buf, int n) {
   }
   return n;
 }
+
+//edits path to only hold dir, returns the file
+char * get_dir(char * path) {
+  int l = strlen(path) - 1;
+  for (; l > 0; l--) {
+    if (path[l] == '/') {
+      char * path2 = malloc(4096);
+      memset(path2, 0, 4096);
+      memcpy(path2, path, l);
+      return path2;
+    }
+  }
+  return NULL;
+}
+
+char * get_file(char * path) {
+  int l = strlen(path) - 1;
+  for (; l > 0; l--) {
+    if (path[l] == '/') {
+      char * path2 = malloc(4096);
+      memset(path2, 0, 4096);
+      memcpy(path2, path+l+1, strlen(path)-(l+1));
+      return path2;
+    }
+  }
+  return NULL;
+}
+
+void zip_add2(char * path) {
+  char * dir = get_dir(path);
+  char * file = get_file(path);
+  system2("mkdir -p _wtf_dir/%s", dir);
+  system3("cp %s ./_wtf_dir/%s", path, dir);
+}
+
 
 //soley for checkout
 void send_proj(int sockfd, char * proj) {

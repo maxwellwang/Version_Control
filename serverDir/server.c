@@ -103,12 +103,13 @@ void push(packet * p, int socket ) {
   }
   //ensure .Commit matches
   char path[4096];
-  sprintf(path, "./%s/.Commit", p->args[2]);
+  sprintf(path, "./%s/.Commit", p->args[0]);
   char * serverC = readFile(path);
   char * clientC = readFile("./_wtf_dir/.Commit");
   int b = strcmp(serverC, clientC);
   free(serverC);
-  free(clientC);  
+  free(clientC);
+
   if (b != 0) {
     writen2(socket, "51 c 0 ", 0);
     return;
@@ -116,22 +117,28 @@ void push(packet * p, int socket ) {
     writen2(socket, "51 i 0 ", 0);
   }
   //move to backup dir. if push ultimately fails, restore it
-  system3("tar -zcf .TODOv%s %s", p->args[2], p->args[2]);
+  //system3("tar -zcf .TODOv%s %s", p->args[0], p->args[0]);
   //restore it
   //system2("tar -xf .TODOv%s", p->args[2]);
   //system2("rm .TODOv%s", p->args[2]);
   
   //recieve files needed (add and modified)
+  printf("Getting files\n");
+  //  system2("rm -r _wtf_dir && rm _wtf_tar", 0);
   packet * p2 = parse_request(socket);
   //update all files from _wtf_dir
-  system2("cd _wtf_dir && cp -rlf . ../%s", p->args[2]);
-
+  system2("cd _wtf_dir && cp -rfp . ../", 0);
+  //delete deleted files
+  system2("cd %s; find . -type f -perm 700 -delete", p->args[0]);
+  printf("Added/Deleted the files!\n");
+  return;
+    
   //delete all files to be deleted
   //TODO
 
   //update project/file versions, hashes, status codes, expire .Commit
   //TODO
-  system2("rm %s/.*Commit", p->args[2]);
+  system2("rm %s/.*Commit", p->args[0]);
 
   //send back success
   writen2(socket, "51 t 0 ", 0);
