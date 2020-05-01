@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -128,7 +129,7 @@ int checkOutput(int file, int code) {
       return 1;
     }
     break;
-  case 7: //destroy, make sure dir in server is goned
+  case 7: //destroy, make sure dir in server is gone
     if (opendir("./serverDir/myproject") == NULL) {
       return 1;
     }

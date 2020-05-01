@@ -10,4 +10,3 @@ Test 5
 $ rm -r myproject2; ./WTF checkout myproject2; ./WTF create myproject3
 Test 6
 $ ./WTF destroy myproject3
-
