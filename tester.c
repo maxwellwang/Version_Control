@@ -10,7 +10,7 @@
 #define DEBUG 0
 
 int codeToNum(char code[]) {
-	if (strncmp(code, "con", 3) == 0) {
+  if (strncmp(code, "con", 3) == 0) {
     return 0;
   } else if (strncmp(code, "che", 3) == 0) {
     return 1;
@@ -160,7 +160,8 @@ int main() {
   char command[4096];
   int commandLength = 0;
   int numCommands;
-  int status = read(file, &c, 1); 
+  int status = read(file, &c, 1);
+  system("cd serverDir; ./WTFserver 8080 2>/dev/null &");
   while (status) {
     if (c == '$') {
     	printf("Test %d:\n", testCounter);
