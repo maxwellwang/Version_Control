@@ -109,8 +109,9 @@ char* getServerHash(char serverManifestPath[], char inputPath[]) {
   		storedHash[storedHashLength++] = c;
   		read(manifest, &c, 1);
   	}
-  	// line read in, if file path matches then 
+  	// line read in, if file path matches then return hash
   	if (strcmp(inputPath, filePath) == 0) {
+  		close(manifest);
   		return storedHash;
   	}
   	
@@ -119,11 +120,54 @@ char* getServerHash(char serverManifestPath[], char inputPath[]) {
 	close(manifest);
 	return NULL;
 }
+
+int getServerFileVersion(char serverManifestPath[], char inputPath[]) {
+	int manifest = open(serverManifestPath, O_RDONLY);
+	char filePath[4096], version[10], c = '?';
+	char storedHash[33];
+  int filePathLength, versionLength, storedHashLength, versionNo;
+  int status = read(manifest, &c, 1);
+  while (status) {
+  	// filePath
+  	filePathLength = 0;
+  	memset(filePath, 0, 4096);
+  	// first read already done
+  	while (c != ' ') {
+  		filePath[filePathLength++] = c;
+  		read(manifest, &c, 1);
+  	}
+  	// version
+  	versionLength = 0;
+  	memset(version, 0, 4096);
+  	read(manifest, &c, 1);
+  	while (c != ' ') {
+  		version[versionLength++] = c;
+  		read(manifest, &c, 1);
+  	}
+  	versionNo = atoi(version);
+  	// hash
+  	storedHashLength = 0;
+  	memset(hash, 0, 4096);
+  	read(manifest, &c, 1);
+  	while (c != '\n') {
+  		storedHash[storedHashLength++] = c;
+  		read(manifest, &c, 1);
+  	}
+  	// line read in, if file path matches then return versionNo
+  	if (strcmp(inputPath, filePath) == 0) {
+  		close(manifest);
+  		return versionNo;
+  	}
+  	
+  	status = read(manifest, &c, 1);
+  }
+	close(manifest);
+	return -1;
+}
 void update(int argc, char* argv[]) {
   check_args(argc, 3);
   // argv[2] project name get rid of / if there is one
-  char* projectname = argv[2];
-  parse_dir(argv[2]);
+  char* projectname = parse_dir(argv[2]);
   // fail if project does not exist
   DIR* dir = opendir(projectname);
   if (!dir) {
@@ -185,10 +229,10 @@ void update(int argc, char* argv[]) {
     close(clientManifest);
     return;
   }
-  close(serverManifest);
   // begin comparing manifests
+  int conflictDetected = 0;
   unsigned char liveHash[33];
-  char filePath[4096], version[10], storedHash[33], c = '?', updateMessage[4096];
+  char filePath[4096], version[10], storedHash[33], c = '?', updateMessage[4096], conflictMessage[4096];
   int filePathLength, versionLength, storedHashLength, versionNo;
   int status = read(clientManifest, &c, 1);
   while (status) {
@@ -225,11 +269,73 @@ void update(int argc, char* argv[]) {
   		memset(updateMessage, 0, 4096);
   		sprintf(updateMessage, "D %s %s\n", filePath, storedHash);
   		writen(updateFile, updateMessage, strlen(updateMessage));
+  	} else { // file in server manifest
+  		if (versionNo != getServerFileVersion("./_wtf_dir/.Manifest", filePath)) {
+  			if (strcmp(getServerHash("./_wtf_dir/.Manifest", filePath), storedHash) != 0 && strcmp(liveHash, storedHash) == 0) {
+  				// modify detected
+	  			printf("M %s\n", filePath);
+	  			memset(updateMessage, 0, 4096);
+	  			sprintf(updateMessage, "M %s %s\n", filePath, getServerHash("./_wtf_dir/.Manifest", filePath));
+	  			writen(updateFile, updateMessage, strlen(updateMessage));
+  			}
+  		} else if (strcmp(storedHash, liveHash) != 0 && strcmp(storedHash, getServerHash("./_wtf_dir/.Manifest", filePath)) != 0) {
+  			// conflict detected
+  			conflictDetected = 1;
+  			printf("C %s\n", filePath);
+  			memset(conflictMessage, 0, 4096);
+  			sprintf(conflictMessage, "C %s %s\n", filePath, liveHash);
+  			writen(conflictFile, conflictMessage, strlen(conflictMessage));
+  		}
   	}
-  	
   	status = read(clientManifest, &c, 1);
   }
+  // check add
+  status = read(serverManifest, &c, 1); // first char of first filePath
+  while (status) {
+  	// filePath
+  	filePathLength = 0;
+  	memset(filePath, 0, 4096);
+  	// first read already done
+  	while (c != ' ') {
+  		filePath[filePathLength++] = c;
+  		read(serverManifest, &c, 1);
+  	}
+  	// version
+  	versionLength = 0;
+  	memset(version, 0, 4096);
+  	read(serverManifest, &c, 1);
+  	while (c != ' ') {
+  		version[versionLength++] = c;
+  		read(serverManifest, &c, 1);
+  	}
+  	versionNo = atoi(version);
+  	// hash
+  	storedHashLength = 0;
+  	memset(hash, 0, 4096);
+  	read(serverManifest, &c, 1);
+  	while (c != '\n') {
+  		storedHash[storedHashLength++] = c;
+  		read(serverManifest, &c, 1);
+  	}
+  	// line read in, if file is not in clientManifest then detect add
+  	if (!fileInManifest(manifestPath, filePath)) { // add detected
+  		printf("A %s\n", filePath);
+  		memset(updateMessage, 0, 4096);
+  		sprintf(updateMessage, "A %s %s\n", filePath, storedHash);
+  		writen(updateFile, updateMessage, strlen(updateMessage));
+  	}
+  	status = read(serverManifest, &c, 1);
+  }
+  close(serverManifest);
   close(clientManifest);
+  if (conflictDetected) { // delete .Update, print message
+  	remove(updatePath);
+  	close(conflictFile);
+  	printf("You must resolve conflicts before you can update\n");
+  	return;
+  }
+  close(updateFile);
+  close(conflictFile);
   return;
 }
 void upgrade(int argc, char* argv[]) {
@@ -397,8 +503,7 @@ void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile
 void commit(int argc, char* argv[]) {
   check_args(argc, 3);
   // argv[2] project name get rid of / if there is one
-  char* projectname = argv[2];
-  parse_dir(argv[2]);
+  char* projectname = parse_dir(argv[2]);
   // fail if project does not exist
   DIR* dir = opendir(projectname);
   if (!dir) {
@@ -553,8 +658,7 @@ void create(int argc, char* argv[]) {
   check_args(argc, 3);
   int sockfd = c_connect();
   // argv[2] project name get rid of / if there is one
-  char* projectname = argv[2];
-  parse_dir(argv[2]);
+  char* projectname = parse_dir(argv[2]);
   writen2(sockfd, "61 %s 0 ", projectname);
   if (mkdir(projectname, 0700) == -1) {
     printf("Error: %s project already exists on client\n", argv[2]);
@@ -576,8 +680,7 @@ void destroy(int argc, char* argv[]) {
   check_args(argc, 3);
   int sockfd = c_connect();
   // argv[2] project name get rid of / if there is one
-  char* projectname = argv[2];
-  parse_dir(argv[2]);
+  char* projectname = parse_dir(argv[2]);
 
   writen2(sockfd, "71 %s 0 ", projectname);
   packet * p = parse_request(sockfd);
@@ -598,8 +701,7 @@ void destroy(int argc, char* argv[]) {
 void add(int argc, char* argv[]) {
   check_args(argc, 4);
   // argv[2] project name get rid of / if there is one
-  char* projectname = argv[2];
-  parse_dir(argv[2]);
+  char* projectname = parse_dir(argv[2]);
   char manifestPath[13 + strlen(projectname)];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   char filePath[4 + strlen(projectname) + strlen(argv[3])];
@@ -661,8 +763,7 @@ void add(int argc, char* argv[]) {
 void c_remove(int argc, char* argv[]) {
   check_args(argc, 4);
   // argv[2] project name get rid of / if there is one
-  char* projectname = argv[2];
-  parse_dir(argv[2]);
+  char* projectname = parse_dir(argv[2]);
   char manifestPath[13 + strlen(projectname)];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   char tempPath[9 + strlen(projectname)];
@@ -760,8 +861,7 @@ void currentversion(int argc, char* argv[]) {
   check_args(argc, 3);
   int sockfd = c_connect();
   // argv[2] project name get rid of / if there is one
-  char* projectname = argv[2];
-  parse_dir(argv[2]);
+  char* projectname = parse_dir(argv[2]);
   writen2(sockfd, "81 %s 0 ", projectname);
   // read and output info
   packet * p = parse_request(sockfd);
