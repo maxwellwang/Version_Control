@@ -1,24 +1,39 @@
 # Version Control
-
 Version Control is a program for allowing multiple clients to edit projects stored in a server.
 
 ## Description
-
 Version Control is a program that consists of a server and clients. The server holds projects that the client can interact with by
-changing the projects in a manner that always changes the most recent version.
+changing the projects in a manner that always changes the most recent version. Once the client configures the hostname/ip address
+and port number to connect to, all of the other commands can connect to the server to request and possibly modify resources. After
+creating a project, clients can destroy it, add files to it, or remove files from it. Another way to get a project into a client is
+through checkout. Pushing the code to the server is a 2-stage process, commit and then push. This is only possible if the client is
+confirmed to have the latest version. The opposite of this is when clients pull from the server, which is also a 2-stage process,
+update and then upgrade. Finally, the client can request the current version of the serverside project, the history of pushes to
+said project, and roll back to an earlier version.
 
 ## Usage
-
-```bash
-make
-cd serverDir
+Server
+```
 ./WTFserver <port number>
-(open separate window)
-cd clientDir
-./WTF configure <ip address/hostname> <port number>
+(client connects, executes commands, disconnects)
+^C (SIGINT)
+```
+Client
+```
+(once server has started running...)
+./WTF configure <hostname or ip address> <port number>
 ./WTF create <project name>
-(back in server window)
-^C
+./WTF destroy <project name>
+./WTF checkout <project name>
+./WTF add <project name> <file name>
+./WTF remove <project name> <file name>
+./WTF commit <project name>
+./WTF push <project name>
+./WTF update <project name>
+./WTF upgrade <project name>
+./WTF currentversion <project name>
+./WTF history <project name>
+./WTF rollback <project name> <version>
 ```
 
 ## Implementation
