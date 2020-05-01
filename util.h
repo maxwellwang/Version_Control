@@ -12,7 +12,7 @@ void hash(char* filename, char c[]);
   
 packet * parse_request(int socket);
 
-void handle_response(packet *);
+void handle_response(int);
 
 char * read_space(int socket);
 
@@ -59,4 +59,16 @@ void zip_untar();
 
 //get size of tar (used for when sending)
 int zip_size();
+
+//manifest stuff
+
+char* getServerHash(char serverManifestPath[], char inputPath[]);
+
+int getServerFileVersion(char serverManifestPath[], char inputPath[]);
+
+int fileInManifest(char manifestPath[], char filePath[]);
+
+int checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile);
+  
+void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile);
 #endif

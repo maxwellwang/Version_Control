@@ -19,16 +19,15 @@
 
 // global vars -> the files, sockets, pointers that exit function needs
 
-
 typedef struct {
-	int sockfd;
-	int new_socket;
+  int sockfd;
+  int new_socket;
 } params;
 
 
 void exitFunction() {
-	// free stuff and close sockets/threads... use global vars
-	return;
+  // free stuff and close sockets/threads... use global vars
+  return;
 }
 
 int init_port(int argc, char * argv[]) {
@@ -56,78 +55,60 @@ void checkout(packet * p, int socket) {
   if (opendir(p->args[0]) != NULL) {
     send_proj(socket, p->args[0]);
   } else { //does not exist
-    writen(socket, "01 f 0 ", 7);
+    writen(socket, "01 e 0 ", 7);
   }
   
 }
-void update(packet * p, int socket ) {
-	char* projectname = p->args[0];
-	// send error if project doesn't exist
-	DIR* dir = opendir(projectname);
-	if (!dir) {
-		writen(socket, "01 p 0 ", 7);
-		closedir(dir);
-		return;
-	}
-	closedir(dir);
-	char manifestPath[strlen(projectname) + 15];
-	sprintf(manifestPath, "./%s/.Manifest", projectname);
-	// send error if manifest doesn't exist in project
-	if (access(manifestPath, F_OK) == -1) {
-		writen(socket, "01 m ", 5);
-		return;
-	}
-	// good to go, send manifest to client
-	if (DEBUG) printf("about to send manifest\n");
-	writen2(socket, "11 s ", 0);
-	send_file(socket, manifestPath);
-	return;
+void update(packet * p ) {
 }
 void upgrade(packet * p ) {
 }
 void commit_a(packet * p, int socket ) {
-	char* projectname = p->args[0];
-	// send error if project doesn't exist
-	DIR* dir = opendir(projectname);
-	if (!dir) {
-		writen(socket, "01 p 0 ", 7);
-		closedir(dir);
-		return;
-	}
-	closedir(dir);
-	char manifestPath[strlen(projectname) + 15];
-	sprintf(manifestPath, "./%s/.Manifest", projectname);
-	// send error if manifest doesn't exist in project
-	if (access(manifestPath, F_OK) == -1) {
-		writen(socket, "01 m ", 5);
-		return;
-	}
-	// good to go, send manifest to client
-	if (DEBUG) printf("about to send manifest\n");
-	writen2(socket, "31 s ", 0);
-	send_file(socket, manifestPath);
-	packet * e = parse_request(socket);
-	system2("mv ./_wtf_dir/.Commit %s", projectname);
-	return;
+  char* projectname = p->args[0];
+  // send error if project doesn't exist
+  DIR* dir = opendir(projectname);
+  if (!dir) {
+    writen(socket, "01 e 0 ", 7);
+    closedir(dir);
+    return;
+  }
+  closedir(dir);
+  char manifestPath[strlen(projectname) + 15];
+  sprintf(manifestPath, "./%s/.Manifest", projectname);
+  // send error if manifest doesn't exist in project
+  if (access(manifestPath, F_OK) == -1) {
+    writen(socket, "01 m 0 ", 7);
+    return;
+  }
+  
+  // good to go, send manifest to client
+  if (DEBUG) printf("about to send manifest\n");
+  writen2(socket, "31 i ", 0);
+  send_file(socket, manifestPath);
+  //first sent packet^^
+  packet * e = parse_request(socket);
+  system2("cp ./_wtf_dir/.Commit %s", projectname);
+  writen2(socket, "31 t 0 ", 0);
+  return;
 }
 void commit_b(packet * p ) {
 }
 void push(packet * p ) {
 }
 void create(packet * p, int socket) {
-	if (mkdir(p->args[0], 0700) == -1) { // dir already exists
-	  writen2(socket, "61 e 0 ", 0);
-	  return;
-	}
-	int pathLength = 12 + strlen(p->args[0]);
-	char manifestPath[pathLength];
-	sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
-	int manifest = open(manifestPath, O_WRONLY | O_CREAT, 00600);
-	writen(manifest, "1\n", 2);
-	close(manifest);
-	writen(socket, "60 ", 3);
-	send_file(socket, manifestPath); // send manifest to client
-	return;
+  if (mkdir(p->args[0], 0700) == -1) { // dir already exists
+    writen2(socket, "61 f 0 ", 0);
+    return;
+  }
+  int pathLength = 12 + strlen(p->args[0]);
+  char manifestPath[pathLength];
+  sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
+  int manifest = open(manifestPath, O_WRONLY | O_CREAT, 00600);
+  writen(manifest, "1\n", 2);
+  close(manifest);
+  writen(socket, "61 t ", 5);
+  send_file(socket, manifestPath); // send manifest to client
+  return;
 }
 void destroy(packet * p, int socket) {
   DIR* dir = opendir(p->args[0]);
@@ -143,50 +124,50 @@ void destroy(packet * p, int socket) {
   return;
 }
 void currentversion(packet * p, int socket) {
-	if (DEBUG) printf("reached currver\n");
-	DIR* dir = opendir(p->args[0]);
-	if (dir) { // dir exists, list its files and versions
-	  writen2(socket, "81 t 0 ", 0);
-		int pathLength = 12 + strlen(p->args[0]);
-		char manifestPath[pathLength];
-		sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
-		int manifest = open(manifestPath, O_RDONLY);
-		char c = '?';
-		if(DEBUG) printf("about to read manifest\n");
-		int status = read(manifest, &c, 1);
-		while (c != '\n') {
-			read(manifest, &c, 1);
-		}
-		int spaceNum = 0;
-		status = read(manifest, &c, 1);
-		while (status > 0) {
-			if (DEBUG) printf("Read %c\n", c);
-			if (c == ' ') {
-				spaceNum++;
-				if (spaceNum == 1) { // write space
-					writen(socket, &c, 1);
-				} else if (spaceNum == 2) { // reached hash, skip to next line (don't write space)
-					spaceNum = 0;
-					while (c != '\n') {
-						read(manifest, &c, 1);
-					}
-					writen(socket, "\n", 1);
-				}
-			} else {
-				writen(socket, &c, 1);
-			}
-			status = read(manifest, &c, 1);
-		}
-		close(manifest);
-		return;
-	} else if (errno == ENOENT) { // project does not exist, command fails
-	  writen2(socket, "81 e 0 ", 0);
-		return;
-	} else {
-	  writen2(socket, "81 u 0 ", 0);
-		return;
+  if (DEBUG) printf("reached currver\n");
+  DIR* dir = opendir(p->args[0]);
+  if (dir) { // dir exists, list its files and versions
+    writen2(socket, "81 t 0 ", 0);
+    int pathLength = 12 + strlen(p->args[0]);
+    char manifestPath[pathLength];
+    sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
+    int manifest = open(manifestPath, O_RDONLY);
+    char c = '?';
+    if(DEBUG) printf("about to read manifest\n");
+    int status = read(manifest, &c, 1);
+    while (c != '\n') {
+      read(manifest, &c, 1);
+    }
+    int spaceNum = 0;
+    status = read(manifest, &c, 1);
+    while (status > 0) {
+      if (DEBUG) printf("Read %c\n", c);
+      if (c == ' ') {
+	spaceNum++;
+	if (spaceNum == 1) { // write space
+	  writen(socket, &c, 1);
+	} else if (spaceNum == 2) { // reached hash, skip to next line (don't write space)
+	  spaceNum = 0;
+	  while (c != '\n') {
+	    read(manifest, &c, 1);
+	  }
+	  writen(socket, "\n", 1);
 	}
-	return;
+      } else {
+	writen(socket, &c, 1);
+      }
+      status = read(manifest, &c, 1);
+    }
+    close(manifest);
+    return;
+  } else if (errno == ENOENT) { // project does not exist, command fails
+    writen2(socket, "81 e 0 ", 0);
+    return;
+  } else {
+    writen2(socket, "81 u 0 ", 0);
+    return;
+  }
+  return;
 }
 void history(packet * p ) {
 }
@@ -211,7 +192,7 @@ int handle_request(packet * p, int socket) {
     checkout(p, socket);
     break;
   case '1':
-    update(p, socket);
+    update(p);
     break;
   case '2':
     upgrade(p);
@@ -253,12 +234,14 @@ void* myThreadFun(void* sockfd) {
   int sock = *((int *) sockfd);
   packet * p = parse_request(sock);
   handle_request(p, sock);
+  printf("Disconnected from client\n");
   close(sock);
   free(sockfd);
   int i = 0;
   for (; i < p->argc; i++) {
     free((p->args)[i]);
   }
+  free(p->args);
   free(p);
   return NULL;
 }
@@ -320,10 +303,10 @@ int main(int argc, char* argv[]) {
     if ((pthread_create(&(tids[i]), NULL, myThreadFun, (void*) sock)) == 0) {
       pthread_detach(tids[i++]);
     } else {
-    	error("Error");
-    	exit(1);
+      error("Error");
+      exit(1);
     }
-    printf("Disconnected from client\n");
+
   }
   
   return 0;

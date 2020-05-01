@@ -232,7 +232,8 @@ packet * parse_request(int socket){
   return p;
 }
 
-void handle_response(packet * p) {
+void handle_response(int sock) {
+  packet * p = parse_request(sock);
   char * cmd;
   switch (p->code) {
   case '0':
@@ -270,13 +271,281 @@ void handle_response(packet * p) {
   }
   if (strcmp(p->args[0], "t") == 0) {
     printf("Command %s succeeded\n", cmd);
+    return;
+  } else if (strcmp(p->args[0], "i") == 0) {
+    printf("Command %s in progress\n", cmd);
+    return;
   } else if (strcmp(p->args[0], "e") == 0) {
     printf("Command %s failed: project does not exist on server\n", cmd);
-  } else if (strcmp(p->args[0], "m")) {
+  } else if (strcmp(p->args[0], "f") == 0) {
+    printf("Command %s failed: project already exists on server\n", cmd);
+  } else if (strcmp(p->args[0], "m") == 0) {
     printf("Command %s failed: manifest does not exist on server\n", cmd);
-  } else if (strcmp(p->args[0], "u")) {
+  } else if (strcmp(p->args[0], "u") == 0) {
     printf("Command %s failed: Unknown error", cmd);
   } else {
     printf("Command %s failed, code %s\n", cmd, p->args[0]);
   }
+  free(p);
+  close(sock);
+  printf("Disconnected from server\n");
+  exit(1);
+}
+
+
+
+
+/*
+
+
+MANIFEST STUFF
+
+
+*/
+
+char* getServerHash(char serverManifestPath[], char inputPath[]) {
+  int manifest = open(serverManifestPath, O_RDONLY);
+  char filePath[4096], version[10], c = '?';
+  char* storedHash = (char*) malloc(33);
+  int filePathLength, versionLength, storedHashLength, versionNo;
+  int status = read(manifest, &c, 1);
+  while (status) {
+    // filePath
+    filePathLength = 0;
+    memset(filePath, 0, 4096);
+    // first read already done
+    while (c != ' ') {
+      filePath[filePathLength++] = c;
+      read(manifest, &c, 1);
+    }
+    // version
+    versionLength = 0;
+    memset(version, 0, 4096);
+    read(manifest, &c, 1);
+    while (c != ' ') {
+      version[versionLength++] = c;
+      read(manifest, &c, 1);
+    }
+    versionNo = atoi(version);
+    // hash
+    storedHashLength = 0;
+    memset(hash, 0, 4096);
+    read(manifest, &c, 1);
+    while (c != '\n') {
+      storedHash[storedHashLength++] = c;
+      read(manifest, &c, 1);
+    }
+    // line read in, if file path matches then return hash
+    if (strcmp(inputPath, filePath) == 0) {
+      close(manifest);
+      return storedHash;
+    }
+  	
+    status = read(manifest, &c, 1);
+  }
+  close(manifest);
+  return NULL;
+}
+
+int getServerFileVersion(char serverManifestPath[], char inputPath[]) {
+  int manifest = open(serverManifestPath, O_RDONLY);
+  char filePath[4096], version[10], c = '?';
+  char storedHash[33];
+  int filePathLength, versionLength, storedHashLength, versionNo;
+  int status = read(manifest, &c, 1);
+  while (status) {
+    // filePath
+    filePathLength = 0;
+    memset(filePath, 0, 4096);
+    // first read already done
+    while (c != ' ') {
+      filePath[filePathLength++] = c;
+      read(manifest, &c, 1);
+    }
+    // version
+    versionLength = 0;
+    memset(version, 0, 4096);
+    read(manifest, &c, 1);
+    while (c != ' ') {
+      version[versionLength++] = c;
+      read(manifest, &c, 1);
+    }
+    versionNo = atoi(version);
+    // hash
+    storedHashLength = 0;
+    memset(hash, 0, 4096);
+    read(manifest, &c, 1);
+    while (c != '\n') {
+      storedHash[storedHashLength++] = c;
+      read(manifest, &c, 1);
+    }
+    // line read in, if file path matches then return versionNo
+    if (strcmp(inputPath, filePath) == 0) {
+      close(manifest);
+      return versionNo;
+    }
+  	
+    status = read(manifest, &c, 1);
+  }
+  close(manifest);
+  return -1;
+}
+
+
+int fileInManifest(char manifestPath[], char filePath[]) {
+  int manifest = open(manifestPath, O_RDONLY);
+  char c = '?';
+  char tempFilePath[4096];
+  memset(tempFilePath, 0, 4096);
+  int length = 0;
+  int status = read(manifest, &c, 1);
+  while (status > 0) {
+    if (c == ' ') {
+      // read file path and compare to param file path
+      memset(tempFilePath, 0, 4096);
+      length = 0;
+      read(manifest, &c, 1);
+      while (c != ' ') {
+	tempFilePath[length++] = c;
+	read(manifest, &c, 1);
+      }
+      if (strcmp(tempFilePath, filePath) == 0) { // found it, return true
+	close(manifest);
+	return 1;
+      } else { // read to newline
+	while (c != '\n') {
+	  read(manifest, &c, 1);
+	}
+      }
+    }
+    status = read(manifest, &c, 1); // if file is done, status will be 0
+  }
+  close(manifest);
+  return 0;
+}
+
+int checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile) {
+  int serverManifest = open(serverManifestPath, O_RDONLY);
+  char c = '?', code = '?';
+  char tempFilePath[4096];
+  memset(tempFilePath, 0, 4096);
+  int length = 0;
+  char serverHash[33];
+  memset(serverHash, 0, 33);
+  int serverHashLength = 0;
+  char version[10];
+  memset(version, 0, 10);
+  int versionLength = 0;
+  int serverFileVersionNo;
+  read(serverManifest, &c, 1); // skip manifest version
+  while (c != '\n') read(serverManifest, &c, 1);
+  int status = read(serverManifest, &c, 1);
+  while (status > 0) {
+    // read file path and compare
+    length = 0;
+    memset(tempFilePath, 0, 4096);
+    read(serverManifest, &c, 1);
+    while (c != ' ') {
+      tempFilePath[length++] = c;
+      read(serverManifest, &c, 1);
+    }
+    if (strcmp(tempFilePath, filePath) == 0) { // file found
+      // read version
+      versionLength = 0;
+      memset(version, 0, 10);
+      read(serverManifest, &c, 1);
+      while (c != ' ') {
+	version[versionLength++] = c;
+	read(serverManifest, &c, 1);
+      }
+      serverFileVersionNo = atoi(version);
+      memset(serverHash, 0, 4096);
+      serverHashLength = 0;
+      read(serverManifest, &c, 1);
+      while (c != '\n') {
+	serverHash[serverHashLength++] = c;
+	read(serverManifest, &c, 1);
+      }
+      if (strcmp(manifestHash, serverHash) == 0 && !sameHash) { // modify code detected
+	code = 'M';
+	break;
+      }
+      // if server file version is geq client file version, error
+      if (serverFileVersionNo >= versionNo) {
+	printf("Error: Must sync with repository before committing changes\n");
+	return -1;
+      }
+    } else { // this isn't the same file
+      while (c != '\n') read(serverManifest, &c, 1);
+    }
+    status = read(serverManifest, &c, 1);
+  }
+  if (!fileInManifest(serverManifestPath, filePath)) { // add code detected
+    code = 'A';
+  }
+  if (code == '?') { // neither modify nor add
+    return 0;
+  }
+  char commitWrite[4096];
+  sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, manifestHash);
+  writen(commitFile, commitWrite, strlen(commitWrite));
+  printf("%c %s\n", code, filePath);
+  close(serverManifest);
+  return 0;
+}
+
+void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile) {
+  int serverManifest = open(serverManifestPath, O_RDONLY);
+  int clientManifest = open(clientManifestPath, O_RDONLY);
+  char c = '?';
+  char commitMessage[4096];
+  memset(commitMessage, 0, 4096);
+  char tempFilePath[4096];
+  memset(tempFilePath, 0, 4096);
+  int length = 0;
+  char serverHash[33];
+  memset(serverHash, 0, 33);
+  int serverHashLength = 0;
+  char version[10];
+  int versionLength = 0;
+  int versionNo;
+  // read mani version on first line first
+  while (c != '\n') read(serverManifest, &c, 1);
+  int status = read(serverManifest, &c, 1);
+  while (status > 0) {
+    // read file path and compare
+    length = 0;
+    memset(tempFilePath, 0, 4096);
+    read(serverManifest, &c, 1);
+    while (c != ' ') {
+      tempFilePath[length++] = c;
+      read(serverManifest, &c, 1);
+    }
+    // read version
+    versionLength = 0;
+    memset(version, 0, 10);
+    while (c != ' ') {
+      version[versionLength++] = c;
+      read(serverManifest, &c, 1);
+    }
+    versionNo = atoi(version);
+    // read hash
+    serverHashLength = 0;
+    memset(serverHash, 0, 4096);
+    read(serverManifest, &c, 1);
+    while (c != '\n') {
+      serverHash[serverHashLength++] = c;
+      read(serverManifest, &c, 1);
+    }
+    if (!fileInManifest(clientManifestPath, tempFilePath)) { // delete code detected 
+      memset(commitMessage, 0, 4096);
+      sprintf(commitMessage, "D %s %d %s", tempFilePath, versionNo + 1, serverHash);
+      writen(commitFile, commitMessage, strlen(commitMessage));
+      printf("D %s\n", tempFilePath);
+    }
+    status = read(serverManifest, &c, 1);
+  }
+  close(serverManifest);
+  close(clientManifest);
+  return;
 }
