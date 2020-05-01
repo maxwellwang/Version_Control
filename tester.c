@@ -195,5 +195,6 @@ int main() {
   }
   close(file);
   system("killall WTFserver");
+  printf("ALL TESTS PASSED\n");
   return EXIT_SUCCESS;
 }

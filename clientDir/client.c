@@ -149,6 +149,7 @@ void update(int argc, char* argv[]) {
     printf("Up To Date\n");
     close(serverManifest);
     close(clientManifest);
+    remove("./_wtf_dir/.Manifest");
     return;
   }
   // begin comparing manifests
@@ -254,10 +255,12 @@ void update(int argc, char* argv[]) {
     remove(updatePath);
     close(conflictFile);
     printf("You must resolve conflicts before you can update\n");
+    remove("./_wtf_dir/.Manifest");
     return;
   }
   close(updateFile);
   close(conflictFile);
+  remove("./_wtf_dir/.Manifest");
   return;
 }
 void upgrade(int argc, char* argv[]) {
@@ -379,6 +382,7 @@ void commit(int argc, char* argv[]) {
       close(sockfd);
       printf("Disconnected from server\n");
       remove(commitPath);
+      remove("./_wtf_dir/.Manifest");
       return;
     }
     status = read(clientManifest, &clientC, 1);
@@ -397,6 +401,7 @@ void commit(int argc, char* argv[]) {
   handle_response(sockfd);
   close(sockfd);
   printf("Disconnected from server\n");
+  remove("./_wtf_dir/.Manifest");
   return;
 }
 
@@ -687,6 +692,24 @@ void currentversion(int argc, char* argv[]) {
 
 void history(int argc, char* argv[]) {
   check_args(argc, 3);
+  int socket = c_connect();
+  // argv[2] project name get rid of / if there is one
+  char* projectname = parse_dir(argv[2]);
+  writen2(socket, "91 %s 0 ", projectname);
+  // read and output info
+  packet* p = parse_request(socket);
+  free(p);
+  int history = open("./_wtf_dir/.History", O_RDONLY);
+  // print the history file
+  char c = '?';
+  int status = read(history, &c, 1);
+  while (status > 0) {
+  	printf("%c", c);
+  	status = read(history, &c, 1);
+  }
+  close(history);
+  remove("./_wtf_dir/.History");
+  return;
 }
 
 void rollback(int argc, char* argv[]) {
