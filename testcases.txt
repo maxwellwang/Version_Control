@@ -1,5 +1,5 @@
 Test 1
-$ ./WTF configure 127.0.0.1 8080
+$ ./WTF configure frost.cs.rutgers.edu 8080
 Test 2
 $ ./WTF create myproject
 Test 3

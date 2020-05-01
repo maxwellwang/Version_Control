@@ -35,7 +35,17 @@ int c_connect() {
   serverAddress.sin_family = AF_INET;
   //TODO: read ip and port from a file, and maybe even hostname?
   char* buffer = read_space(configfd);
-  serverAddress.sin_addr.s_addr = inet_addr(buffer);
+  char hostbuffer[256]; 
+  char *IPbuffer; 
+  struct hostent *host_entry; 
+  int hostname; 
+  // To retrieve hostname 
+  hostname = gethostname(hostbuffer, sizeof(hostbuffer));  
+  // To retrieve host information 
+  host_entry = gethostbyname(hostbuffer);
+  // To convert an Internet network address into ASCII string 
+  IPbuffer = inet_ntoa(*((struct in_addr*) host_entry->h_addr_list[0]));
+  serverAddress.sin_addr.s_addr = inet_addr(IPbuffer);
   int portno = atoi(read_space(configfd));
   serverAddress.sin_port = htons(portno);
   close(configfd);
