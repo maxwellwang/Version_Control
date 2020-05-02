@@ -332,6 +332,8 @@ void handle_response(int sock) {
     printf("Command %s failed: manifest does not exist on server\n", cmd);
   } else if (strcmp(p->args[0], "u") == 0) {
     printf("Command %s failed: Unknown error", cmd);
+  } else if (strcmp(p->args[0], "v") == 0) {
+  	printf("Command %s failed: Requested project version does not exist\n", cmd);
   } else {
     printf("Command %s failed, code %s\n", cmd, p->args[0]);
   }

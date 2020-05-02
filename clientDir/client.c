@@ -699,6 +699,7 @@ void history(int argc, char* argv[]) {
   // read and output info
   packet* p = parse_request(socket);
   free(p);
+  close(socket);
   int history = open("./_wtf_dir/.History", O_RDONLY);
   // print the history file
   char c = '?';
@@ -714,6 +715,12 @@ void history(int argc, char* argv[]) {
 
 void rollback(int argc, char* argv[]) {
   check_args(argc, 4);
+  char* projectname = parse_dir(argv[2]);
+  int socket = c_connect();
+  writen2(socket, "a1 %s 0 ", projectname);
+  handle_response(socket);
+  close(socket);
+  return;
 }
 
 

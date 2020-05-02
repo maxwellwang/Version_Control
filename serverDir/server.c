@@ -242,7 +242,41 @@ void history(packet * p, int socket) {
   //first sent packet^^
   return;
 }
-void rollback(packet * p ) {
+void rollback(packet * p, int socket) {
+	char* projectname = parse_dir(p->args[0]);
+	DIR* dir = opendir(projectname);
+	int version = atoi(p->args[1]);
+	if (!dir) { // project doesn't exist on server
+    	writen2(socket, "a1 e 0 ", 0);
+    	return;
+    }
+    char replacementDir[4096];
+    sprintf(replacementDir, ".%dv%s", version, projectname);
+    char replacementDirPath[4096];
+    sprintf(replacementDirPath, "%s/%s", projectname, replacementDir);
+    char command[4096];
+    struct dirent* item = readdir(dir);
+    while (item) {
+    	if (item->d_type == DT_DIR) {
+    		if (strcmp(item->d_name, replacementDir) == 0) { // replacement dir found
+    			sprintf(command, "mv %s ..", replacementDirPath);
+    			system(command);
+    			memset(command, 0, 4096);
+    			sprintf(command, "rm -rf %s", projectname);
+    			system(command);
+    			memset(command, 0, 4096);
+    			sprintf(command, "mv %s %s", replacementDir, projectname);
+    			system(command);
+    			closedir(dir);
+    			writen2(socket, "a1 t 0 ", 0);
+    			return;
+    		}
+    	}
+    }
+    // didn't find it, write error
+    writen2(socket, "a1 v 0 ", 0);
+    closedir(dir);
+  	return;
 }
 void testfunc(packet * p ) {
   printf("Reached the test function!\n");
@@ -290,7 +324,7 @@ int handle_request(packet * p, int socket) {
     history(p, socket);
     break;
   case 'a':
-    rollback(p);
+    rollback(p, socket);
     break;
   case 't':
     testfunc(p);
