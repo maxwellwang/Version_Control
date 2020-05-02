@@ -57,12 +57,21 @@ void exitFunction() {
   return;
 }
 
-int init_port(int argc, char * argv[]) {
-  // check arg count
-  if (argc != 2) {
-    printf("Error: Expected 2 args, received %d\n", argc);
-    exit(1);
+//ret 1 if exists, 0 if not
+int check_proj(char * proj) {
+  DIR* dir = opendir(proj);
+  if (!dir) {
+    //code shouldn't matter in this case
+    writen(socket, "01 e 0 ", 7);
+    return 0;
   }
+  closedir(dir);
+  return 1;
+}
+
+int init_port(int argc, char * argv[]) {
+  check_args(argc, 2);
+  
   // check port number inputted
   int portNo = atoi(argv[1]);
   if (portNo == 0 && argv[1][0] != '0') {
@@ -73,21 +82,26 @@ int init_port(int argc, char * argv[]) {
     printf("Error: Invalid port number, received %d\n", portNo);
     exit(1);
   }
-  
   return portNo;
 }
 
 
 void checkout(packet * p, int socket) {
+<<<<<<< HEAD
   if (opendir(p->args[0]) != NULL) {
   	lock(p->args[0]);
     send_proj(socket, p->args[0]);
     unlock(p->args[0]);
   } else { //does not exist
     writen(socket, "01 e 0 ", 7);
+=======
+  if (!check_proj(p->args[0])) {
+    return;
+>>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   }
-  
+  send_proj(socket, p->args[0]);
 }
+<<<<<<< HEAD
 void update(packet * p, int socket) {
 	char* projectname = p->args[0];
   // send error if project doesn't exist
@@ -114,20 +128,26 @@ void update(packet * p, int socket) {
   send_file(socket, manifestPath);
   unlock(projectname);
   return;
+=======
+
+void update(packet * p ) {
+>>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
 }
+
 void upgrade(packet * p ) {
 }
+
 void commit_a(packet * p, int socket ) {
   char* projectname = p->args[0];
   // send error if project doesn't exist
-  DIR* dir = opendir(projectname);
-  if (!dir) {
-    writen(socket, "01 e 0 ", 7);
-    closedir(dir);
+  if (!check_proj(p->args[0])) {
     return;
   }
+<<<<<<< HEAD
   closedir(dir);
   lock(projectname);
+=======
+>>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   char manifestPath[strlen(projectname) + 15];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   // send error if manifest doesn't exist in project
@@ -148,15 +168,10 @@ void commit_a(packet * p, int socket ) {
   unlock(projectname);
   return;
 }
-void commit_b(packet * p ) {
-}
+
 void push(packet * p, int socket ) {
-  DIR* dir = opendir(p->args[0]);
-  if (dir == NULL) {
-    writen2(socket, "51 e 0 ", 0);
+  if (!check_proj(p->args[0])) {
     return;
-  } else {
-    closedir(dir);
   }
   lock(p->args[0]);
   //ensure .Commit matches
@@ -192,11 +207,10 @@ void push(packet * p, int socket ) {
   system2("cd _wtf_dir && cp -rfp . ../", 0);
   //delete deleted files
   system2("cd %s && find . -type f -perm 704 -delete", p->args[0]);
-
   //update history TODO: add client ID to commit
   system2("cd %s && cat .Commit >> .History", p->args[0]);
+  
   //update project/file versions, hashes, status codes
-
   //put entries to delete into list
   char commitPath[4096];
   char * entries[8192];
@@ -236,11 +250,9 @@ void push(packet * p, int socket ) {
     if (tok == NULL) {
       break;
     }
-    printf("2\n");
     code = tok[0];
     tok = strtok(NULL, " \n"); //file version
     flag = 0;
-    printf("bye\n");
     //if it is in deleted list, skip it
     for (j = 0; j < i; j++) {
       if (strcmp(entries[j], path2) == 0) {
@@ -298,6 +310,7 @@ void create(packet * p, int socket) {
   return;
 }
 void destroy(packet * p, int socket) {
+<<<<<<< HEAD
   DIR* dir = opendir(p->args[0]);
   if (dir) { // dir exists, delete it
   	lock(p->args[0]);
@@ -309,12 +322,22 @@ void destroy(packet * p, int socket) {
     writen2(socket, "71 e 0 ", 0);
   } else { // failed for some other reason, command fails
     writen2(socket, "71 u 0 ", 0);
+=======
+  if (!check_proj(p->args[0])) {
+    return;
+>>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   }
+  system2("rm -r %s", p->args[0]);
+  writen2(socket, "71 t 0 ", 0);
   return;
 }
 void currentversion(packet * p, int socket) {
   if (DEBUG) printf("reached currver\n");
+  if (!check_proj(p->args[0])) {
+    return;
+  }
   DIR* dir = opendir(p->args[0]);
+<<<<<<< HEAD
   if (dir) { // dir exists, list its files and versions
   	lock(p->args[0]);
     writen2(socket, "81 t 0 ", 0);
@@ -344,10 +367,38 @@ void currentversion(packet * p, int socket) {
 	  writen(socket, "\n", 1);
 	}
       } else {
+=======
+
+  int pathLength = 12 + strlen(p->args[0]);
+  char manifestPath[pathLength];
+  sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
+  int manifest = open(manifestPath, O_RDONLY);
+  char c = '?';
+  if(DEBUG) printf("about to read manifest\n");
+  int status = read(manifest, &c, 1);
+  while (c != '\n') {
+    read(manifest, &c, 1);
+  }
+  int spaceNum = 0;
+  status = read(manifest, &c, 1);
+  while (status > 0) {
+    if (DEBUG) printf("Read %c\n", c);
+    if (c == ' ') {
+      spaceNum++;
+      if (spaceNum == 1) { // write space
+>>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
 	writen(socket, &c, 1);
+      } else if (spaceNum == 2) { // reached hash, skip to next line (don't write space)
+	spaceNum = 0;
+	while (c != '\n') {
+	  read(manifest, &c, 1);
+	}
+	writen(socket, "\n", 1);
       }
-      status = read(manifest, &c, 1);
+    } else {
+      writen(socket, &c, 1);
     }
+<<<<<<< HEAD
     close(manifest);
     unlock(p->args[0]);
     return;
@@ -357,20 +408,26 @@ void currentversion(packet * p, int socket) {
   } else {
     writen2(socket, "81 u 0 ", 0);
     return;
+=======
+    status = read(manifest, &c, 1);
+>>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   }
+  close(manifest);
+  writen2(socket, "81 t 0 ", 0);
   return;
 }
+
 void history(packet * p, int socket) {
   char* projectname = p->args[0];
   // send error if project doesn't exist
-  DIR* dir = opendir(projectname);
-  if (!dir) {
-    writen2(socket, "91 e 0 ", 0);
-    closedir(dir);
+  if (!check_proj(projectname)) {
     return;
   }
+<<<<<<< HEAD
   closedir(dir);
   lock(projectname);
+=======
+>>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   char historyPath[strlen(projectname) + 15];
   sprintf(historyPath, "./%s/.History", projectname);
   // send error if history doesn't exist in project
@@ -384,12 +441,16 @@ void history(packet * p, int socket) {
   if (DEBUG) printf("about to send history\n");
   writen2(socket, "91 t ", 0);
   send_file(socket, historyPath);
+<<<<<<< HEAD
   //first sent packet^^
   unlock(projectname);
+=======
+>>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   return;
 }
 void rollback(packet * p, int socket) {
   char* projectname = parse_dir(p->args[0]);
+<<<<<<< HEAD
   DIR* dir = opendir(projectname);
   int version = atoi(p->args[1]);
   if (!dir) { // project doesn't exist on server
@@ -399,6 +460,13 @@ void rollback(packet * p, int socket) {
   }
 	closedir(dir);
 	lock(projectname);
+=======
+  if (!check_proj(projectname)) {
+    return;
+  }
+  
+  int version = atoi(p->args[1]);
+>>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   char replacementDir[4096];
   sprintf(replacementDir, ".%dv%s", version, projectname);
   if (access(replacementDir, F_OK) != -1) {
@@ -412,6 +480,7 @@ void rollback(packet * p, int socket) {
   unlock(projectname);
   return;
 }
+
 void testfunc(packet * p ) {
   printf("Reached the test function!\n");
 
@@ -438,9 +507,6 @@ int handle_request(packet * p, int socket) {
     break;
   case '3':
     commit_a(p, socket);
-    break;
-  case '4':
-    commit_b(p);
     break;
   case '5':
     push(p, socket);
@@ -565,8 +631,6 @@ int main(int argc, char* argv[]) {
       error("Error");
       exit(1);
     }
-
   }
-  
   return 0;
 }
