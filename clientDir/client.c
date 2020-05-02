@@ -99,23 +99,9 @@ void update(int argc, char* argv[]) {
   }
   closedir(dir);
   int socket = c_connect();
-  packet* p = parse_request(socket);
-  if (strcmp(p->args[0], "p") == 0) {
-    printf("Project %s does not exist on server\n", projectname);
-    free(p);
-    close(socket);
-    printf("Disconnected from server\n");
-    exit(1);
-  } else if (strcmp(p->args[0], "m") == 0) {
-    printf("Project %s Manifest does not exist on server\n", projectname);
-    free(p);
-    close(socket);
-    printf("Disconnected from server\n");
-    exit(1);
-  }
-  close(socket);
-  printf("Disconnected from server\n");
-  free(p);
+  writen2(socket, "11 %s ", argv[2]);
+  handle_response(socket);
+
   // manifest fetched successfully, now compare to determine case
   int serverManifest = open("./_wtf_dir/.Manifest", O_RDONLY);
   char manifestPath[13 + strlen(projectname)];
@@ -141,7 +127,8 @@ void update(int argc, char* argv[]) {
   }
   int updateFile = open(updatePath, O_WRONLY | O_CREAT | O_APPEND, 00600);
   int conflictFile = open(conflictPath, O_WRONLY | O_CREAT | O_APPEND, 00600);
-  if (strcmp(clientManifestVersion, serverManifestVersion) == 0) { // match, write blank .Update, delete .Conflict, and stop
+  // match, write blank .Update, delete .Conflict, and stop
+  if (strcmp(clientManifestVersion, serverManifestVersion) == 0) { 
     if (access(updatePath, F_OK) != -1) remove(updatePath);
     updateFile = open(updatePath, O_WRONLY | O_CREAT, 00600);
     close(updateFile);
@@ -152,6 +139,7 @@ void update(int argc, char* argv[]) {
     remove("./_wtf_dir/.Manifest");
     return;
   }
+  
   // begin comparing manifests
   int conflictDetected = 0;
   unsigned char liveHash[33];
