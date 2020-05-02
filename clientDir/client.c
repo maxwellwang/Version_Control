@@ -672,15 +672,33 @@ void currentversion(int argc, char* argv[]) {
   writen2(sockfd, "81 %s 0 ", projectname);
   // read and output info
   handle_response(sockfd);
-  
-  char c = '?';
-  int status = read(sockfd, &c, 1);
-  while (status > 0) {
-    printf("%c", c);
-    status = read(sockfd, &c, 1);
-  }
   close(sockfd);
   printf("Disconnected from server\n");
+  // manifest is in wtf
+  int manifest = open ("./_wtf_dir/.Manifest", O_RDONLY);
+  char c = '?';
+  while (c != '\n') read(manifest, &c, 1);
+  int status = read(manifest, &c, 1);
+  while (status > 0) {
+  	while (c != ' ') { // reads file path
+  		printf("%c", c);
+  		read(manifest, &c, 1);
+  	}
+  	printf(" ");
+  	read(manifest, &c, 1);
+  	while (c != ' ') { // reads version No
+  		printf("%c", c);
+  		read(manifest, &c, 1);
+  	}
+  	printf("\n");
+  	read(manifest, &c, 1);
+  	while (c != '\n') { // skips hash
+  		read(manifest, &c, 1);
+  	}
+  	status = read(manifest, &c, 1);
+  }
+  close(manifest);
+  remove("./_wtf_dir/.Manifest");
   return;
 }
 
