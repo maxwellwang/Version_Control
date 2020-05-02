@@ -94,6 +94,12 @@ int runAndCheck(char command[]) {
   	sprintf(clientCommitPath, "./clientDir/%s/.Commit", argv[2]);
     if (access(clientCommitPath, F_OK) != -1 && access(serverCommitPath, F_OK) != -1) return 1;
     break;
+  case 5:
+    sprintf(serverProjectPath, "./serverDir/%s/myfile", argv[2]);
+    if (access(serverProjectPath, F_OK) != -1) {
+      return 1;
+    }
+    break;
   case 6: // create, check if client and server have the dir with .Manifest in it
     sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
     sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
