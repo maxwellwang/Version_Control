@@ -24,19 +24,19 @@ int mutexCounter;
 char projectnames[4096][4096];
 
 int projectnameToNum(char name[]) {
-	int i;
-	for (i = 0; i < 4096; i++) {
-		if ( strcmp(projectnames[i], name) == 0 ) return i;
-	}
-	return -1; // shouldn't happen
+  int i;
+  for (i = 0; i < 4096; i++) {
+    if ( strcmp(projectnames[i], name) == 0 ) return i;
+  }
+  return -1; // shouldn't happen
 }
 void lock(char projectname[]) {
-	pthread_mutex_lock(mutexes + projectnameToNum(projectname));
-	return;
+  pthread_mutex_lock(mutexes + projectnameToNum(projectname));
+  return;
 }
 void unlock(char projectname[]) {
-	pthread_mutex_unlock(mutexes + projectnameToNum(projectname));
-	return;
+  pthread_mutex_unlock(mutexes + projectnameToNum(projectname));
+  return;
 }
 
 
@@ -51,8 +51,8 @@ void exitFunction() {
   // destroy mutexes
   int i = mutexCounter - 1;
   while (i >= 0) {
-  	pthread_mutex_destroy(mutexes + i);
-  	i--;
+    pthread_mutex_destroy(mutexes + i);
+    i--;
   }
   return;
 }
@@ -71,7 +71,6 @@ int check_proj(char * proj, int socket) {
 
 int init_port(int argc, char * argv[]) {
   check_args(argc, 2);
-  
   // check port number inputted
   int portNo = atoi(argv[1]);
   if (portNo == 0 && argv[1][0] != '0') {
@@ -87,33 +86,42 @@ int init_port(int argc, char * argv[]) {
 
 
 void checkout(packet * p, int socket) {
-  if (!check_proj(p->args[0], socket)) {
+  send_proj(socket, p->args[0]);
+}
+
+void update(packet * p, int socket ) {
+  char* projectname = p->args[0];
+  char manifestPath[strlen(projectname) + 15];
+  sprintf(manifestPath, "./%s/.Manifest", projectname);
+  // send error if manifest doesn't exist in project
+  if (access(manifestPath, F_OK) == -1) {
+    writen(socket, "11 m 0 ", 7);
+    
     return;
   }
-  lock(p->args[0]);
-  send_proj(socket, p->args[0]);
-  unlock(p->args[0]);
+  
+  // good to go, send manifest to client
+  if (DEBUG) printf("about to send manifest\n");
+  writen2(socket, "11 i ", 0);
+  send_file(socket, manifestPath);
+  //first sent packet^^
+  
 }
 
-void update(packet * p ) {
-}
-
-void upgrade(packet * p ) {
+void upgrade(packet * p, int socket ) {
 }
 
 void commit_a(packet * p, int socket ) {
   char* projectname = p->args[0];
   // send error if project doesn't exist
-  if (!check_proj(p->args[0], socket)) {
-    return;
-  }
-  lock(p->args[0]);
+
+ 
   char manifestPath[strlen(projectname) + 15];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   // send error if manifest doesn't exist in project
   if (access(manifestPath, F_OK) == -1) {
     writen(socket, "01 m 0 ", 7);
-    unlock(p->args[0]);
+    
     return;
   }
   
@@ -125,15 +133,11 @@ void commit_a(packet * p, int socket ) {
   packet * e = parse_request(socket);
   system2("cp ./_wtf_dir/.Commit %s", projectname);
   writen2(socket, "31 t 0 ", 0);
-  unlock(p->args[0]);
+  
   return;
 }
 
 void push(packet * p, int socket ) {
-  if (!check_proj(p->args[0], socket)) {
-    return;
-  }
-  lock(p->args[0]);
   //ensure .Commit matches
   char path[4096];
   sprintf(path, "./%s/.Commit", p->args[0]);
@@ -145,7 +149,7 @@ void push(packet * p, int socket ) {
 
   if (b != 0) {
     writen2(socket, "51 c 0 ", 0);
-    unlock(p->args[0]);
+    
     return;
   } else {
     writen2(socket, "51 i 0 ", 0);
@@ -244,7 +248,7 @@ void push(packet * p, int socket ) {
 
   free(manifest);
   free(commit);
-  unlock(p->args[0]);
+  
 }
 
 void create(packet * p, int socket) {
@@ -254,8 +258,8 @@ void create(packet * p, int socket) {
   }
   // create mutex
   if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
-  	printf("Mutex init has failed\n");
-  	return;
+    printf("Mutex init has failed\n");
+    return;
   }
   strcpy(projectnames[mutexCounter], p->args[0]);
   mutexCounter++;
@@ -271,23 +275,12 @@ void create(packet * p, int socket) {
   return;
 }
 void destroy(packet * p, int socket) {
-  if (!check_proj(p->args[0], socket)) {
-    return;
-  }
-  lock(p->args[0]);
   system2("rm -r %s", p->args[0]);
   writen2(socket, "71 t 0 ", 0);
-  unlock(p->args[0]); // should never be accessed again if code checks correctly
+  // should never be accessed again if code checks correctly
   return;
 }
 void currentversion(packet * p, int socket) {
-  if (DEBUG) printf("reached currver\n");
-  if (!check_proj(p->args[0], socket)) {
-    return;
-  }
-  
-  lock(p->args[0]);
-
   int pathLength = 12 + strlen(p->args[0]);
   char manifestPath[pathLength];
   sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
@@ -320,23 +313,18 @@ void currentversion(packet * p, int socket) {
   }
   close(manifest);
   writen2(socket, "81 t 0 ", 0);
-  unlock(p->args[0]);
+  
   return;
 }
 
 void history(packet * p, int socket) {
   char* projectname = p->args[0];
-  // send error if project doesn't exist
-  if (!check_proj(projectname, socket)) {
-    return;
-  }
-  lock(p->args[0]);
   char historyPath[strlen(projectname) + 15];
   sprintf(historyPath, "./%s/.History", projectname);
   // send error if history doesn't exist in project
   if (access(historyPath, F_OK) == -1) {
     writen2(socket, "91 m 0 ", 0);
-    unlock(p->args[0]);
+    
     return;
   }
   
@@ -344,15 +332,13 @@ void history(packet * p, int socket) {
   if (DEBUG) printf("about to send history\n");
   writen2(socket, "91 t ", 0);
   send_file(socket, historyPath);
-  unlock(p->args[0]);
+  
   return;
 }
 void rollback(packet * p, int socket) {
   char* projectname = parse_dir(p->args[0]);
-  if (!check_proj(projectname, socket)) {
-    return;
-  }
-  lock(p->args[0]);
+
+ 
   int version = atoi(p->args[1]);
   char replacementDir[4096];
   sprintf(replacementDir, ".%dv%s", version, projectname);
@@ -364,33 +350,28 @@ void rollback(packet * p, int socket) {
   } else {
     writen2(socket, "a1 v 0 ", 0);
   }
-  unlock(p->args[0]);
+  
   return;
-}
-
-void testfunc(packet * p ) {
-  printf("Reached the test function!\n");
-
-  printf("%d args, they are (in [brackets]):\n", p->argc);
-  int i;
-  for (i = 0; i < p->argc; i++) {
-    printf("Arg %d: [%s]\n", i, (p->args)[i]);
-  }
-  printf("Length of file is: %d\n", p->filelen);
 }
 
 int handle_request(packet * p, int socket) {
   //read in information according to protocol
-  //  if (DEBUG) printf("Handling request\n");
+  //lock and ensure project exists for all but create
+  if (p->code != '6') {
+    lock(p->args[0]);
+    if (!check_proj(p->args[0], socket)) {
+      return;
+    }
+  }
   switch (p->code) {
   case '0':
     checkout(p, socket);
     break;
   case '1':
-    update(p);
+    update(p, socket);
     break;
   case '2':
-    upgrade(p);
+    upgrade(p, socket);
     break;
   case '3':
     commit_a(p, socket);
@@ -413,10 +394,9 @@ int handle_request(packet * p, int socket) {
   case 'a':
     rollback(p, socket);
     break;
-  case 't':
-    testfunc(p);
-    break;
-    
+  }
+  if (p->code != '6') {
+    unlock(p->args[0]);
   }
   
 }
@@ -445,17 +425,17 @@ int main(int argc, char* argv[]) {
   DIR* dir = opendir(".");
   struct dirent* currentDir = readdir(dir);
   while (currentDir) {
-  	if (currentDir->d_type == DT_DIR) {
-  		if (strncmp("_wtf_dir", currentDir->d_name, 8) != 0) {
-  			if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
-  				printf("Mutex init has failed\n");
-  				return 1;
-  			}
-  			strcpy(projectnames[mutexCounter], currentDir->d_name);
-  			mutexCounter++;
-  		}
-  	}
-  	currentDir = readdir(dir);
+    if (currentDir->d_type == DT_DIR) {
+      if (strncmp("_wtf_dir", currentDir->d_name, 8) != 0) {
+	if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
+	  printf("Mutex init has failed\n");
+	  return 1;
+	}
+	strcpy(projectnames[mutexCounter], currentDir->d_name);
+	mutexCounter++;
+      }
+    }
+    currentDir = readdir(dir);
   }
   closedir(dir);
   
@@ -512,7 +492,7 @@ int main(int argc, char* argv[]) {
     int * sock = malloc(sizeof(int));
     *sock = new_socket;
     if ((pthread_create(&(tids[i]), NULL, myThreadFun, (void*) sock)) == 0) {
-   		pthread_detach(tids[i++]);
+      pthread_detach(tids[i++]);
     } else {
       error("Error");
       exit(1);
