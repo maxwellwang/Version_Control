@@ -75,6 +75,8 @@ int runAndCheck(char command[]) {
   char serverManifestPath[4096];
   char serverCommitPath[4096];
   char clientCommitPath[4096];
+  char updatePath[4096];
+  char conflictPath[4096];
   int clientManifest, bytes, status;
   switch (code) {
   case 0: // configure, check if .configure file was made
@@ -82,19 +84,24 @@ int runAndCheck(char command[]) {
       return 1;
     }
     break;
-  case 1: //same checks as create
+  case 1: // checkout, same checks as create
   	sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
   	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
     if (access(serverManifestPath, F_OK) != -1 && access(clientManifestPath, F_OK) != -1) {
       return 1;
     }
     break;
-  case 4:
+  case 2: // update, check for .Update or .Conflict
+  	sprintf(updatePath, "./clientDir/%s/.Update", argv[2]);
+  	sprintf(conflictPath, "./clientDir/%s/.Conflict", argv[2]);
+  	if (access(updatePath, F_OK) != -1 || access(conflictPath, F_OK) != -1) return 1;
+  	break;
+  case 4: // commit, check for commit file
   	sprintf(serverCommitPath, "./serverDir/%s/.Commit", argv[2]);
   	sprintf(clientCommitPath, "./clientDir/%s/.Commit", argv[2]);
     if (access(clientCommitPath, F_OK) != -1 && access(serverCommitPath, F_OK) != -1) return 1;
     break;
-  case 5:
+  case 5: // push, check for file in server project
     sprintf(serverProjectPath, "./serverDir/%s/myfile", argv[2]);
     if (access(serverProjectPath, F_OK) != -1) {
       return 1;
