@@ -17,6 +17,7 @@
 #define CONNECTION_QUEUE_SIZE 10
 #define DEBUG 0
 
+// global vars -> the files, sockets, pointers that exit function needs
 // mutex array
 pthread_mutex_t mutexes[4096];
 int mutexCounter;
@@ -29,16 +30,15 @@ int projectnameToNum(char name[]) {
 	}
 	return -1; // shouldn't happen
 }
-
 void lock(char projectname[]) {
 	pthread_mutex_lock(mutexes + projectnameToNum(projectname));
 	return;
 }
-
 void unlock(char projectname[]) {
 	pthread_mutex_unlock(mutexes + projectnameToNum(projectname));
 	return;
 }
+
 
 typedef struct {
   int sockfd;
@@ -58,7 +58,7 @@ void exitFunction() {
 }
 
 //ret 1 if exists, 0 if not
-int check_proj(char * proj) {
+int check_proj(char * proj, int socket) {
   DIR* dir = opendir(proj);
   if (!dir) {
     //code shouldn't matter in this case
@@ -87,51 +87,15 @@ int init_port(int argc, char * argv[]) {
 
 
 void checkout(packet * p, int socket) {
-<<<<<<< HEAD
-  if (opendir(p->args[0]) != NULL) {
-  	lock(p->args[0]);
-    send_proj(socket, p->args[0]);
-    unlock(p->args[0]);
-  } else { //does not exist
-    writen(socket, "01 e 0 ", 7);
-=======
-  if (!check_proj(p->args[0])) {
+  if (!check_proj(p->args[0], socket)) {
     return;
->>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   }
+  lock(p->args[0]);
   send_proj(socket, p->args[0]);
+  unlock(p->args[0]);
 }
-<<<<<<< HEAD
-void update(packet * p, int socket) {
-	char* projectname = p->args[0];
-  // send error if project doesn't exist
-  DIR* dir = opendir(projectname);
-  if (!dir) {
-    writen(socket, "01 e 0 ", 7);
-    closedir(dir);
-    return;
-  }
-  closedir(dir);
-  lock(projectname);
-  char manifestPath[strlen(projectname) + 15];
-  sprintf(manifestPath, "./%s/.Manifest", projectname);
-  // send error if manifest doesn't exist in project
-  if (access(manifestPath, F_OK) == -1) {
-    writen(socket, "01 m 0 ", 7);
-    unlock(projectname);
-    return;
-  }
-  
-  // good to go, send manifest to client
-  if (DEBUG) printf("about to send manifest\n");
-  writen2(socket, "21 i ", 0);
-  send_file(socket, manifestPath);
-  unlock(projectname);
-  return;
-=======
 
 void update(packet * p ) {
->>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
 }
 
 void upgrade(packet * p ) {
@@ -140,20 +104,16 @@ void upgrade(packet * p ) {
 void commit_a(packet * p, int socket ) {
   char* projectname = p->args[0];
   // send error if project doesn't exist
-  if (!check_proj(p->args[0])) {
+  if (!check_proj(p->args[0], socket)) {
     return;
   }
-<<<<<<< HEAD
-  closedir(dir);
-  lock(projectname);
-=======
->>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
+  lock(p->args[0]);
   char manifestPath[strlen(projectname) + 15];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   // send error if manifest doesn't exist in project
   if (access(manifestPath, F_OK) == -1) {
     writen(socket, "01 m 0 ", 7);
-    unlock(projectname);
+    unlock(p->args[0]);
     return;
   }
   
@@ -165,12 +125,12 @@ void commit_a(packet * p, int socket ) {
   packet * e = parse_request(socket);
   system2("cp ./_wtf_dir/.Commit %s", projectname);
   writen2(socket, "31 t 0 ", 0);
-  unlock(projectname);
+  unlock(p->args[0]);
   return;
 }
 
 void push(packet * p, int socket ) {
-  if (!check_proj(p->args[0])) {
+  if (!check_proj(p->args[0], socket)) {
     return;
   }
   lock(p->args[0]);
@@ -292,11 +252,13 @@ void create(packet * p, int socket) {
     writen2(socket, "61 f 0 ", 0);
     return;
   }
-  // create mutex for it
-  pthread_mutex_init(mutexes + mutexCounter, NULL);
+  // create mutex
+  if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
+  	printf("Mutex init has failed\n");
+  	return;
+  }
   strcpy(projectnames[mutexCounter], p->args[0]);
   mutexCounter++;
-  lock(p->args[0]);
   
   int pathLength = 12 + strlen(p->args[0]);
   char manifestPath[pathLength];
@@ -306,68 +268,25 @@ void create(packet * p, int socket) {
   close(manifest);
   writen(socket, "61 t ", 5);
   send_file(socket, manifestPath); // send manifest to client
-  unlock(p->args[0]);
   return;
 }
 void destroy(packet * p, int socket) {
-<<<<<<< HEAD
-  DIR* dir = opendir(p->args[0]);
-  if (dir) { // dir exists, delete it
-  	lock(p->args[0]);
-    closedir(dir);
-    system2("rm -r %s", p->args[0]);
-    writen2(socket, "71 t 0 ", 0);
-    unlock(p->args[0]); // didn't delete mutex since it shouldn't be locked again if the code checks for project existence correctly
-  } else if (errno == ENOENT) { // project does not exist, command fails
-    writen2(socket, "71 e 0 ", 0);
-  } else { // failed for some other reason, command fails
-    writen2(socket, "71 u 0 ", 0);
-=======
-  if (!check_proj(p->args[0])) {
+  if (!check_proj(p->args[0], socket)) {
     return;
->>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   }
+  lock(p->args[0]);
   system2("rm -r %s", p->args[0]);
   writen2(socket, "71 t 0 ", 0);
+  unlock(p->args[0]); // should never be accessed again if code checks correctly
   return;
 }
 void currentversion(packet * p, int socket) {
   if (DEBUG) printf("reached currver\n");
-  if (!check_proj(p->args[0])) {
+  if (!check_proj(p->args[0], socket)) {
     return;
   }
-  DIR* dir = opendir(p->args[0]);
-<<<<<<< HEAD
-  if (dir) { // dir exists, list its files and versions
-  	lock(p->args[0]);
-    writen2(socket, "81 t 0 ", 0);
-    int pathLength = 12 + strlen(p->args[0]);
-    char manifestPath[pathLength];
-    sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
-    int manifest = open(manifestPath, O_RDONLY);
-    char c = '?';
-    if(DEBUG) printf("about to read manifest\n");
-    int status = read(manifest, &c, 1);
-    while (c != '\n') {
-      read(manifest, &c, 1);
-    }
-    int spaceNum = 0;
-    status = read(manifest, &c, 1);
-    while (status > 0) {
-      if (DEBUG) printf("Read %c\n", c);
-      if (c == ' ') {
-	spaceNum++;
-	if (spaceNum == 1) { // write space
-	  writen(socket, &c, 1);
-	} else if (spaceNum == 2) { // reached hash, skip to next line (don't write space)
-	  spaceNum = 0;
-	  while (c != '\n') {
-	    read(manifest, &c, 1);
-	  }
-	  writen(socket, "\n", 1);
-	}
-      } else {
-=======
+  
+  lock(p->args[0]);
 
   int pathLength = 12 + strlen(p->args[0]);
   char manifestPath[pathLength];
@@ -386,7 +305,6 @@ void currentversion(packet * p, int socket) {
     if (c == ' ') {
       spaceNum++;
       if (spaceNum == 1) { // write space
->>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
 	writen(socket, &c, 1);
       } else if (spaceNum == 2) { // reached hash, skip to next line (don't write space)
 	spaceNum = 0;
@@ -398,42 +316,27 @@ void currentversion(packet * p, int socket) {
     } else {
       writen(socket, &c, 1);
     }
-<<<<<<< HEAD
-    close(manifest);
-    unlock(p->args[0]);
-    return;
-  } else if (errno == ENOENT) { // project does not exist, command fails
-    writen2(socket, "81 e 0 ", 0);
-    return;
-  } else {
-    writen2(socket, "81 u 0 ", 0);
-    return;
-=======
     status = read(manifest, &c, 1);
->>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   }
   close(manifest);
   writen2(socket, "81 t 0 ", 0);
+  unlock(p->args[0]);
   return;
 }
 
 void history(packet * p, int socket) {
   char* projectname = p->args[0];
   // send error if project doesn't exist
-  if (!check_proj(projectname)) {
+  if (!check_proj(projectname, socket)) {
     return;
   }
-<<<<<<< HEAD
-  closedir(dir);
-  lock(projectname);
-=======
->>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
+  lock(p->args[0]);
   char historyPath[strlen(projectname) + 15];
   sprintf(historyPath, "./%s/.History", projectname);
   // send error if history doesn't exist in project
   if (access(historyPath, F_OK) == -1) {
     writen2(socket, "91 m 0 ", 0);
-    unlock(projectname);
+    unlock(p->args[0]);
     return;
   }
   
@@ -441,32 +344,16 @@ void history(packet * p, int socket) {
   if (DEBUG) printf("about to send history\n");
   writen2(socket, "91 t ", 0);
   send_file(socket, historyPath);
-<<<<<<< HEAD
-  //first sent packet^^
-  unlock(projectname);
-=======
->>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
+  unlock(p->args[0]);
   return;
 }
 void rollback(packet * p, int socket) {
   char* projectname = parse_dir(p->args[0]);
-<<<<<<< HEAD
-  DIR* dir = opendir(projectname);
-  int version = atoi(p->args[1]);
-  if (!dir) { // project doesn't exist on server
-    writen2(socket, "a1 e 0 ", 0);
-    closedir(dir);
+  if (!check_proj(projectname, socket)) {
     return;
   }
-	closedir(dir);
-	lock(projectname);
-=======
-  if (!check_proj(projectname)) {
-    return;
-  }
-  
+  lock(p->args[0]);
   int version = atoi(p->args[1]);
->>>>>>> c015604b2b3e25700493a9dd27e4bceaf1b23e6d
   char replacementDir[4096];
   sprintf(replacementDir, ".%dv%s", version, projectname);
   if (access(replacementDir, F_OK) != -1) {
@@ -477,7 +364,7 @@ void rollback(packet * p, int socket) {
   } else {
     writen2(socket, "a1 v 0 ", 0);
   }
-  unlock(projectname);
+  unlock(p->args[0]);
   return;
 }
 
@@ -500,7 +387,7 @@ int handle_request(packet * p, int socket) {
     checkout(p, socket);
     break;
   case '1':
-    update(p, socket);
+    update(p);
     break;
   case '2':
     upgrade(p);
@@ -553,21 +440,20 @@ void* myThreadFun(void* sockfd) {
 
 int main(int argc, char* argv[]) {
   atexit(exitFunction);
-  
   // setup mutexes for project paths
   mutexCounter = 0;
   DIR* dir = opendir(".");
   struct dirent* currentDir = readdir(dir);
   while (currentDir) {
   	if (currentDir->d_type == DT_DIR) {
-	  	if (strncmp("_wtf_dir", currentDir->d_name, 8) != 0) {
-		  	if ( pthread_mutex_init(mutexes + mutexCounter, NULL) != 0 ) {
-		  		printf("Mutex init has failed\n");
-		  		return 1;
-		  	}
-		  	strcpy(projectnames[mutexCounter], currentDir->d_name);
-		  	mutexCounter++;
-	  	}
+  		if (strncmp("_wtf_dir", currentDir->d_name, 8) != 0) {
+  			if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
+  				printf("Mutex init has failed\n");
+  				return 1;
+  			}
+  			strcpy(projectnames[mutexCounter], currentDir->d_name);
+  			mutexCounter++;
+  		}
   	}
   	currentDir = readdir(dir);
   }
@@ -626,7 +512,7 @@ int main(int argc, char* argv[]) {
     int * sock = malloc(sizeof(int));
     *sock = new_socket;
     if ((pthread_create(&(tids[i]), NULL, myThreadFun, (void*) sock)) == 0) {
-      pthread_detach(tids[i++]);
+   		pthread_detach(tids[i++]);
     } else {
       error("Error");
       exit(1);
