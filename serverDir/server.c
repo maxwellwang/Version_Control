@@ -222,7 +222,7 @@ void history(packet * p, int socket) {
   // send error if project doesn't exist
   DIR* dir = opendir(projectname);
   if (!dir) {
-    writen(socket, "01 e 0 ", 7);
+    writen2(socket, "01 e 0 ", 0);
     closedir(dir);
     return;
   }
@@ -231,7 +231,7 @@ void history(packet * p, int socket) {
   sprintf(historyPath, "./%s/.History", projectname);
   // send error if history doesn't exist in project
   if (access(historyPath, F_OK) == -1) {
-    writen(socket, "01 m 0 ", 7);
+    writen2(socket, "01 m 0 ", 0);
     return;
   }
   
