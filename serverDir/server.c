@@ -294,11 +294,11 @@ void currentversion(packet * p, int socket) {
   return;
 }
 void history(packet * p, int socket) {
-	char* projectname = p->args[0];
+  char* projectname = p->args[0];
   // send error if project doesn't exist
   DIR* dir = opendir(projectname);
   if (!dir) {
-    writen2(socket, "01 e 0 ", 0);
+    writen2(socket, "91 e 0 ", 0);
     closedir(dir);
     return;
   }
@@ -307,13 +307,13 @@ void history(packet * p, int socket) {
   sprintf(historyPath, "./%s/.History", projectname);
   // send error if history doesn't exist in project
   if (access(historyPath, F_OK) == -1) {
-    writen2(socket, "01 m 0 ", 0);
+    writen2(socket, "91 m 0 ", 0);
     return;
   }
   
   // good to go, send history to client
   if (DEBUG) printf("about to send history\n");
-  writen2(socket, "31 i ", 0);
+  writen2(socket, "91 t ", 0);
   send_file(socket, historyPath);
   //first sent packet^^
   return;

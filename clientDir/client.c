@@ -691,19 +691,9 @@ void history(int argc, char* argv[]) {
   char* projectname = parse_dir(argv[2]);
   writen2(socket, "91 %s 0 ", projectname);
   // read and output info
-  packet* p = parse_request(socket);
-  free(p);
+  handle_response(socket);
   close(socket);
-  int history = open("./_wtf_dir/.History", O_RDONLY);
-  // print the history file
-  char c = '?';
-  int status = read(history, &c, 1);
-  while (status > 0) {
-  	printf("%c", c);
-  	status = read(history, &c, 1);
-  }
-  close(history);
-  remove("./_wtf_dir/.History");
+  system2("cat ./_wtf_dir/.History", 0);
   return;
 }
 

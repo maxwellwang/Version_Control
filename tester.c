@@ -153,6 +153,9 @@ int runAndCheck(char command[]) {
     break;
   case 10: // currentversion
     break;
+  case 11: // hsitory
+    return 1;
+    break;
   default:
     return 0; // shouldn't be here
   }

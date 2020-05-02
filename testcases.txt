@@ -12,3 +12,5 @@ Test 6
 $ ./WTF destroy myproject3
 Test 7
 $ ./WTF push myproject
+Test 8
+$ ./WTF history myproject
