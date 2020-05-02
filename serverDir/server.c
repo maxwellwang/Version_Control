@@ -116,33 +116,109 @@ void push(packet * p, int socket ) {
   } else {
     writen2(socket, "51 i 0 ", 0);
   }
+
+  //get manifest version to store
+  char manPath[4096];
+  sprintf(manPath, "%s/.Manifest", p->args[0]);
+  char * manifest = readFile(manPath);
+  int version = atoi(strtok(manifest, " "));
+  version++;
+  sprintf(manPath, ".%dv%s", version, p->args[0]);
   //move to backup dir. if push ultimately fails, restore it
-  //system3("tar -zcf .TODOv%s %s", p->args[0], p->args[0]);
+  system3("tar -zcf %s %s", manPath, p->args[0]);
+  
   //restore it
   //system2("tar -xf .TODOv%s", p->args[2]);
   //system2("rm .TODOv%s", p->args[2]);
   
   //recieve files needed (add and modified)
-  printf("Getting files\n");
-  //  system2("rm -r _wtf_dir && rm _wtf_tar", 0);
   packet * p2 = parse_request(socket);
   //update all files from _wtf_dir
   system2("cd _wtf_dir && cp -rfp . ../", 0);
   //delete deleted files
-  system2("cd %s; find . -type f -perm 700 -delete", p->args[0]);
-  printf("Added/Deleted the files!\n");
-  return;
-    
-  //delete all files to be deleted
-  //TODO
+  system2("cd %s && find . -type f -perm 704 -delete", p->args[0]);
 
-  //update project/file versions, hashes, status codes, expire .Commit
-  //TODO
+  //update history TODO: add client ID to commit
+  system2("cd %s && cat .Commit >> .History", p->args[0]);
+  //update project/file versions, hashes, status codes
+
+  //put entries to delete into list
+  char commitPath[4096];
+  char * entries[8192];
+  sprintf(commitPath, "%s/.Commit", p->args[0]);
+  char * commit = readFile(commitPath);
+  char * tok;
+  char * path2;
+  char code;
+  int first = 1;
+  int i = 0;
+  while (1) {
+    tok = strtok(first == 1 ? commit : NULL, " \n");
+    first = 0;
+    if (tok == NULL) {
+      break;
+    }
+    code = tok[0];
+    tok = strtok(NULL, " \n");
+    if (code == 'D') { //add path to list
+      entries[i] = malloc(strlen(tok) + 1);
+      memcpy(entries[i], tok, strlen(tok));
+      i++;
+    }
+    tok = strtok(NULL, " \n");
+    tok = strtok(NULL, " \n");
+  }
+  //go through Manifest and write out entries not needed to be deleted
+  i = 0;
+  //manifest version
+  
+  int j, flag;
+  int ver = atoi(strtok(manifest, "\n"));
+  system3("echo '%d' >> %s/.Manifest2", ++ver, p->args[0]);
+  while (1) {
+    tok = strtok(NULL, " \n"); //file path
+    path2 = tok;
+    if (tok == NULL) {
+      break;
+    }
+    printf("2\n");
+    code = tok[0];
+    tok = strtok(NULL, " \n"); //file version
+    flag = 0;
+    printf("bye\n");
+    //if it is in deleted list, skip it
+    for (j = 0; j < i; j++) {
+      if (strcmp(entries[j], path2) == 0) {
+	strtok(NULL, " \n");
+	flag = 1;
+      }
+    }
+    //not in list, write out the regular info
+    if (flag == 0) {
+      system3("echo -n '%s ' >> %s/.Manifest2 ", path2, p->args[0]);
+      version = atoi(tok);
+      system3("echo -n '%d ' >> %s/.Manifest2 ", version, p->args[0]);
+      tok = strtok(NULL, " \n"); // file hash
+      system3("echo '%s' >> %s/.Manifest2 ", tok, p->args[0]);
+    }
+  }
+  //append deleted (add or modify) entries
+  system3("sed '/^D/ d' < %s/.Commit > %s/.Commit2", p->args[0], p->args[0]);
+  system3("sed 's/^..//' %s/.Commit2 >> %s/.Manifest2", p->args[0], p->args[0]);
+  //replace original manifest with new
+  system2("cd %s && mv .Manifest2 .Manifest", p->args[0]);
+  system2("cd %s && usleep 100000 && rm -f .Commit2 && rm -f .Manifest2", p->args[0]);
+
+  //expire commits
   system2("rm %s/.*Commit", p->args[0]);
-
+  
   //send back success
   writen2(socket, "51 t 0 ", 0);
+
+  free(manifest);
+  free(commit);
 }
+
 void create(packet * p, int socket) {
   if (mkdir(p->args[0], 0700) == -1) { // dir already exists
     writen2(socket, "61 f 0 ", 0);

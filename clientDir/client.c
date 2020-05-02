@@ -427,9 +427,6 @@ void push(int argc, char* argv[]) {
   //initial check of project & commit
   handle_response(sock);
   //send files over
-  printf("Got here\n");
-  
-
   char * tok;
   char code;
   char * path;
@@ -453,8 +450,8 @@ void push(int argc, char* argv[]) {
     //    printf("C[%c]P[%s]V[%d]H[%s]\n", code, path, version, hash);
     zip_add2(path);
     //set permissions so we know to delete
-    if (code == 'A') {
-      system2("chmod 700 ./_wtf_dir/%s", path);
+    if (code == 'D') {
+      system2("chmod 704 ./_wtf_dir/%s", path);
     }
   }
   zip_tar();
@@ -469,9 +466,6 @@ void push(int argc, char* argv[]) {
   f2f(tarfd, sock, zip_size());
   close(tarfd);
   free(commit);
-  return;
-    
-
   
   //recieve success message
   handle_response(sock);
