@@ -281,39 +281,19 @@ void destroy(packet * p, int socket) {
   return;
 }
 void currentversion(packet * p, int socket) {
-  int pathLength = 12 + strlen(p->args[0]);
-  char manifestPath[pathLength];
-  sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
-  int manifest = open(manifestPath, O_RDONLY);
-  char c = '?';
-  if(DEBUG) printf("about to read manifest\n");
-  int status = read(manifest, &c, 1);
-  while (c != '\n') {
-    read(manifest, &c, 1);
+  char* projectname = p->args[0];
+  char manifestPath[strlen(projectname) + 15];
+  sprintf(manifestPath, "./%s/.Manifest", projectname);
+  // send error if manifest doesn't exist in project
+  if (access(manifestPath, F_OK) == -1) {
+    writen(socket, "01 m 0 ", 7);
+    return;
   }
-  int spaceNum = 0;
-  status = read(manifest, &c, 1);
-  while (status > 0) {
-    if (DEBUG) printf("Read %c\n", c);
-    if (c == ' ') {
-      spaceNum++;
-      if (spaceNum == 1) { // write space
-	writen(socket, &c, 1);
-      } else if (spaceNum == 2) { // reached hash, skip to next line (don't write space)
-	spaceNum = 0;
-	while (c != '\n') {
-	  read(manifest, &c, 1);
-	}
-	writen(socket, "\n", 1);
-      }
-    } else {
-      writen(socket, &c, 1);
-    }
-    status = read(manifest, &c, 1);
-  }
-  close(manifest);
-  writen2(socket, "81 t 0 ", 0);
-  
+ 
+  // good to go, send manifest to client
+  if (DEBUG) printf("about to send manifest\n");
+  writen2(socket, "81 t ", 0);
+  send_file(socket, manifestPath);
   return;
 }
 
