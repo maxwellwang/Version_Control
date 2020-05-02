@@ -89,6 +89,9 @@ int runAndCheck(char command[]) {
       return 1;
     }
     break;
+  case 2: //update
+    return 1;
+    break;
   case 4:
   	sprintf(serverCommitPath, "./serverDir/%s/.Commit", argv[2]);
   	sprintf(clientCommitPath, "./clientDir/%s/.Commit", argv[2]);

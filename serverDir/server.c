@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include "../util.h"
 #define CONNECTION_QUEUE_SIZE 10
-#define DEBUG 0
+#define DEBUG 1
 
 // global vars -> the files, sockets, pointers that exit function needs
 // mutex array
@@ -96,7 +96,6 @@ void update(packet * p, int socket ) {
   // send error if manifest doesn't exist in project
   if (access(manifestPath, F_OK) == -1) {
     writen(socket, "11 m 0 ", 7);
-    
     return;
   }
   
@@ -104,18 +103,14 @@ void update(packet * p, int socket ) {
   if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "11 i ", 0);
   send_file(socket, manifestPath);
-  //first sent packet^^
   
 }
 
 void upgrade(packet * p, int socket ) {
 }
 
-void commit_a(packet * p, int socket ) {
+void commit(packet * p, int socket ) {
   char* projectname = p->args[0];
-  // send error if project doesn't exist
-
- 
   char manifestPath[strlen(projectname) + 15];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   // send error if manifest doesn't exist in project
@@ -317,8 +312,6 @@ void history(packet * p, int socket) {
 }
 void rollback(packet * p, int socket) {
   char* projectname = parse_dir(p->args[0]);
-
- 
   int version = atoi(p->args[1]);
   char replacementDir[4096];
   sprintf(replacementDir, ".%dv%s", version, projectname);
@@ -354,7 +347,7 @@ int handle_request(packet * p, int socket) {
     upgrade(p, socket);
     break;
   case '3':
-    commit_a(p, socket);
+    commit(p, socket);
     break;
   case '5':
     push(p, socket);

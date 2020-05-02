@@ -99,9 +99,8 @@ void update(int argc, char* argv[]) {
   }
   closedir(dir);
   int socket = c_connect();
-  writen2(socket, "11 %s ", argv[2]);
+  writen2(socket, "11 %s 0 ", argv[2]);
   handle_response(socket);
-
   // manifest fetched successfully, now compare to determine case
   int serverManifest = open("./_wtf_dir/.Manifest", O_RDONLY);
   char manifestPath[13 + strlen(projectname)];
@@ -723,7 +722,7 @@ int main(int argc, char* argv[]) {
   } else if (strcmp(argv[1], "checkout") == 0) {
     checkout(argc, argv);
   } else if (strcmp(argv[1], "update") == 0) {
-    configure(argc, argv);
+    update(argc, argv);
   } else if (strcmp(argv[1], "upgrade") == 0) {
     upgrade(argc, argv);
   } else if (strcmp(argv[1], "commit") == 0) {
