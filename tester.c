@@ -156,6 +156,9 @@ int runAndCheck(char command[]) {
   case 11: // hsitory
     return 1;
     break;
+  case 12: //rollback
+    return 1;
+    break;
   default:
     return 0; // shouldn't be here
   }

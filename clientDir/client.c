@@ -701,7 +701,9 @@ void rollback(int argc, char* argv[]) {
   check_args(argc, 4);
   char* projectname = parse_dir(argv[2]);
   int socket = c_connect();
-  writen2(socket, "a1 %s 0 ", projectname);
+  char buf[4096];
+  sprintf(buf,"a2 %s %s 0 ", projectname, argv[3]);
+  writen2(socket, buf, 0);
   handle_response(socket);
   close(socket);
   return;

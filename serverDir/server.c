@@ -122,15 +122,11 @@ void push(packet * p, int socket ) {
   sprintf(manPath, "%s/.Manifest", p->args[0]);
   char * manifest = readFile(manPath);
   int version = atoi(strtok(manifest, " "));
-  version++;
   sprintf(manPath, ".%dv%s", version, p->args[0]);
   //move to backup dir. if push ultimately fails, restore it
   system3("tar -zcf %s %s", manPath, p->args[0]);
   
-  //restore it
-  //system2("tar -xf .TODOv%s", p->args[2]);
-  //system2("rm .TODOv%s", p->args[2]);
-  
+
   //recieve files needed (add and modified)
   packet * p2 = parse_request(socket);
   //update all files from _wtf_dir
@@ -319,40 +315,25 @@ void history(packet * p, int socket) {
   return;
 }
 void rollback(packet * p, int socket) {
-	char* projectname = parse_dir(p->args[0]);
-	DIR* dir = opendir(projectname);
-	int version = atoi(p->args[1]);
-	if (!dir) { // project doesn't exist on server
-    	writen2(socket, "a1 e 0 ", 0);
-    	return;
-    }
-    char replacementDir[4096];
-    sprintf(replacementDir, ".%dv%s", version, projectname);
-    char replacementDirPath[4096];
-    sprintf(replacementDirPath, "%s/%s", projectname, replacementDir);
-    char command[4096];
-    struct dirent* item = readdir(dir);
-    while (item) {
-    	if (item->d_type == DT_DIR) {
-    		if (strcmp(item->d_name, replacementDir) == 0) { // replacement dir found
-    			sprintf(command, "mv %s ..", replacementDirPath);
-    			system(command);
-    			memset(command, 0, 4096);
-    			sprintf(command, "rm -rf %s", projectname);
-    			system(command);
-    			memset(command, 0, 4096);
-    			sprintf(command, "mv %s %s", replacementDir, projectname);
-    			system(command);
-    			closedir(dir);
-    			writen2(socket, "a1 t 0 ", 0);
-    			return;
-    		}
-    	}
-    }
-    // didn't find it, write error
+  char* projectname = parse_dir(p->args[0]);
+  DIR* dir = opendir(projectname);
+  int version = atoi(p->args[1]);
+  if (!dir) { // project doesn't exist on server
+    writen2(socket, "a1 e 0 ", 0);
+    return;
+  }
+
+  char replacementDir[4096];
+  sprintf(replacementDir, ".%dv%s", version, projectname);
+  if (access(replacementDir, F_OK) != -1) {
+    //restore it
+    system3("tar -xf .%sv%s", p->args[1], p->args[0]);
+    system3("rm .%sv%s", p->args[1], p->args[0]);
+    writen2(socket, "a1 t 0 ", 0);
+  } else {
     writen2(socket, "a1 v 0 ", 0);
-    closedir(dir);
-  	return;
+  }
+  return;
 }
 void testfunc(packet * p ) {
   printf("Reached the test function!\n");
