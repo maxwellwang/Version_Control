@@ -17,6 +17,7 @@ void hash(char* filename, char c[]) {
     read(hashfile, c + i, 1);
   }
   close(hashfile);
+  system("rm hashfile");
   return;
 }
 
@@ -35,12 +36,6 @@ char * read_space(int socket) {
   buf[buf_pos-1] = 0;
   return buf;
 }
-
-//reads input until particular char
-char * read_ws(int socket, char c) {
-  return NULL;
-}
-
 
 //populates args and argc of packet
 void read_args(int socket, packet * p) {
@@ -63,9 +58,9 @@ void read_args(int socket, packet * p) {
   return;
 }
 
-//reads len bytes into _wtf_tmp_.tgz
+//reads len bytes into ._wtf_tmp_.tgz
 void read_to_file(int socket, int len) {
-  int fd = open("./_wtf_tar", O_RDWR | O_CREAT, 00600);
+  int fd = open("./._wtf_tar", O_RDWR | O_CREAT, 00600);
   if (fd == -1) {
     printf("Error: could not open file\n");
     exit(1); //only exiting the child
@@ -145,7 +140,7 @@ void send_file(int sockfd, char * filename) {
   sprintf(size, "%d", zip_size());
   writen(sockfd, size, strlen(size));
   writen(sockfd, " ", 1);
-  int tarfd = open("./_wtf_tar", O_RDONLY);
+  int tarfd = open("./._wtf_tar", O_RDONLY);
   f2f(tarfd, sockfd, zip_size());
 }
 
@@ -197,56 +192,50 @@ char * get_file(char * path) {
 void zip_add2(char * path) {
   char * dir = get_dir(path);
   char * file = get_file(path);
-  system2("mkdir -p _wtf_dir/%s", dir);
-  system3("cp %s ./_wtf_dir/%s", path, dir);
+  system2("mkdir -p ._wtf_dir/%s", dir);
+  system3("cp %s ./._wtf_dir/%s", path, dir);
 }
 
 
 //soley for checkout
 void send_proj(int sockfd, char * proj) {
   char buf[4096];
-  memset(buf, 0, 4096);
-  sprintf(buf, "tar -zcf _wtf_tar %s", proj);
-  system(buf);
+  system2("tar -zcf ._wtf_tar %s", proj);
   sprintf(buf, "01 t %d ", 5, zip_size());
   writen(sockfd, buf, strlen(buf));
-  int tarfd = open("./_wtf_tar", O_RDONLY);
+  int tarfd = open("./._wtf_tar", O_RDONLY);
   f2f(tarfd, sockfd, zip_size());
 }
 
 //remove any existing tar/directory
 void zip_init() {
-  system("rm -r _wtf_dir 2>/dev/null");
-  system("rm _wtf_tar 2>/dev/null");
-  system("mkdir _wtf_dir 2>/dev/null");
+  system("rm -r ._wtf_dir 2>/dev/null");
+  system("rm ._wtf_tar 2>/dev/null");
+  system("mkdir ._wtf_dir 2>/dev/null");
 }
 
 //add file to tar
 void zip_add(char * path) {
-  int len = 25 + strlen(path);
-  char * str = malloc(len);
-  memset(str, 0, len);
-  snprintf(str, len, "cp %s _wtf_dir 2>/dev/null", path);
-  system(str);
+  system2("cp %s ._wtf_dir 2>/dev/null", path);
 }
 
 //create tar and remove dir
 void zip_tar() {
-  system("tar -zcf _wtf_tar _wtf_dir 2>/dev/null");
-  system("rm -r _wtf_dir 2>/dev/null");
+  system("tar -zcf ._wtf_tar ._wtf_dir 2>/dev/null");
+  system("rm -r ._wtf_dir 2>/dev/null");
 }
 
-//untar and remove tar, leaving _wtf_dir
+//untar and remove tar, leaving ._wtf_dir
 void zip_untar() {
-  system("rm -r _wtf_dir 2>/dev/null");
-  system("tar -xf _wtf_tar 2>/dev/null");
-  system("rm -r _wtf_tar 2>/dev/null");
+  system("rm -r ._wtf_dir 2>/dev/null");
+  system("tar -xf ._wtf_tar 2>/dev/null");
+  system("rm -r ._wtf_tar 2>/dev/null");
 }
 
 //get size of tar (used for when sending)
 int zip_size() {
   struct stat st;
-  stat("_wtf_tar", &st);
+  stat("._wtf_tar", &st);
   return st.st_size;
 }
 
@@ -334,6 +323,8 @@ void handle_response(int sock) {
     printf("Command %s failed: Unknown error", cmd);
   } else if (strcmp(p->args[0], "v") == 0) {
     printf("Command %s failed: Requested project version does not exist\n", cmd);
+  } else if (strcmp(p->args[0], "v") == 0) {
+    printf("Command %s failed: .History file does not exist\n", cmd);
   } else {
     printf("Command %s failed, code %s\n", cmd, p->args[0]);
   }

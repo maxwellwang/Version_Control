@@ -107,7 +107,7 @@ void update(packet * p, int socket ) {
 }
 
 void upgrade(packet * p, int socket ) {
-  char * update = readFile("_wtf_dir/.Update");
+  char * update = readFile("._wtf_dir/.Update");
   char * tok;
   char code;
   char * path;
@@ -136,7 +136,7 @@ void upgrade(packet * p, int socket ) {
   char buf[4096];
   sprintf(buf, "21 t %d ", zip_size());
   writen2(socket, buf, 0);
-  int tarfd = open("./_wtf_tar", O_RDONLY);
+  int tarfd = open("./._wtf_tar", O_RDONLY);
   f2f(tarfd, socket, zip_size());
   close(tarfd);
   free(update);
@@ -162,7 +162,7 @@ void commit(packet * p, int socket ) {
   if (strcmp(e->args[0], "z") == 0) { // manifest versions don't match, stop
   	return;
   }
-  system3("cp ./_wtf_dir/.%sCommit %s",e->args[1], projectname);
+  system3("cp ./._wtf_dir/.%sCommit %s",e->args[1], projectname);
   writen2(socket, "31 t 0 ", 0);
   
   return;
@@ -173,7 +173,7 @@ void push(packet * p, int socket ) {
   char serverPath[4096];
   char clientPath[4096];
   sprintf(serverPath, "./%s/.%sCommit", p->args[0], p->args[1]);
-  sprintf(clientPath, "./_wtf_dir/.%sCommit", p->args[1]);
+  sprintf(clientPath, "./._wtf_dir/.%sCommit", p->args[1]);
   char * serverC = readFile(serverPath);
   char * clientC = readFile(clientPath);
   int b = strcmp(serverC, clientC);
@@ -199,8 +199,8 @@ void push(packet * p, int socket ) {
 
   //recieve files needed (add and modified)
   packet * p2 = parse_request(socket);
-  //update all files from _wtf_dir
-  system2("cd _wtf_dir && cp -rfp . ../", 0);
+  //update all files from ._wtf_dir
+  system2("cd ._wtf_dir && cp -rfp . ../", 0);
   //delete deleted files
   system2("cd %s && find . -type f -perm 704 -delete", p->args[0]);
   //update history TODO: add client ID to commit
@@ -275,12 +275,12 @@ void push(packet * p, int socket ) {
   //expire commits
   system2("rm %s/.*Commit", p->args[0]);
   
-  //send back success
-  writen2(socket, "51 t 0 ", 0);
+  //send back manifest
+  writen2(socket, "51 t ", 0);
+  send_file(socket, manPath);
 
   free(manifest);
   free(commit);
-  
 }
 
 void create(packet * p, int socket) {
@@ -302,8 +302,11 @@ void create(packet * p, int socket) {
   int manifest = open(manifestPath, O_WRONLY | O_CREAT, 00600);
   writen(manifest, "0\n", 2); // starting manifest version of 0
   close(manifest);
-  writen(socket, "61 t ", 5);
+  usleep(10000);
+  writen2(socket, "61 t ", 0);
+  printf("Manifest path is: [%s]\n", manifestPath);
   send_file(socket, manifestPath); // send manifest to client
+  system2("touch %s/.History", p->args[0]);  
   return;
 }
 void destroy(packet * p, int socket) {
@@ -335,16 +338,13 @@ void history(packet * p, int socket) {
   sprintf(historyPath, "./%s/.History", projectname);
   // send error if history doesn't exist in project
   if (access(historyPath, F_OK) == -1) {
-    writen2(socket, "91 m 0 ", 0);
-    
+    writen2(socket, "91 h 0 ", 0);
     return;
   }
   
   // good to go, send history to client
-  if (DEBUG) printf("about to send history\n");
   writen2(socket, "91 t ", 0);
-  send_file(socket, historyPath);
-  
+  send_file(socket, historyPath);  
   return;
 }
 void rollback(packet * p, int socket) {
@@ -436,7 +436,7 @@ int main(int argc, char* argv[]) {
   struct dirent* currentDir = readdir(dir);
   while (currentDir) {
     if (currentDir->d_type == DT_DIR) {
-      if (strncmp("_wtf_dir", currentDir->d_name, 8) != 0) {
+      if (strncmp("._wtf_dir", currentDir->d_name, 8) != 0) {
 	if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
 	  printf("Mutex init has failed\n");
 	  return 1;

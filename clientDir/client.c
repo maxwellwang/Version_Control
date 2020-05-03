@@ -107,7 +107,7 @@ void update(int argc, char* argv[]) {
   writen2(socket, "11 %s 0 ", argv[2]);
   handle_response(socket);
   // manifest fetched successfully, now compare to determine case
-  int serverManifest = open("./_wtf_dir/.Manifest", O_RDONLY);
+  int serverManifest = open("./._wtf_dir/.Manifest", O_RDONLY);
   char manifestPath[13 + strlen(projectname)];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   char updatePath[15+ strlen(projectname)];
@@ -140,7 +140,7 @@ void update(int argc, char* argv[]) {
     printf("Up To Date\n");
     close(serverManifest);
     close(clientManifest);
-    remove("./_wtf_dir/.Manifest");
+    remove("./._wtf_dir/.Manifest");
     return;
   }
   
@@ -179,24 +179,33 @@ void update(int argc, char* argv[]) {
       read(clientManifest, &c, 1);
     }
     // line read in, check modify, delete, and conflict
+<<<<<<< HEAD
     //if (DEBUG) printf("file path to look for is %s\n", filePath);
     if (!fileInManifest("./_wtf_dir/.Manifest", filePath)) { // delete detected
+=======
+    if (!fileInManifest("./._wtf_dir/.Manifest", filePath)) { // delete detected
+>>>>>>> Added update manifest on push, also make _wtf_ hidden, remove files
       printf("D %s\n", filePath);
       memset(updateMessage, 0, 4096);
       sprintf(updateMessage, "D %s %s\n", filePath, storedHash);
       writen(updateFile, updateMessage, strlen(updateMessage));
     } else { // file in server manifest
+<<<<<<< HEAD
       if (versionNo != getServerFileVersion("./_wtf_dir/.Manifest", filePath)) {
 	if (strcmp(getServerHash("./_wtf_dir/.Manifest", filePath), 
 	storedHash) != 0
 	 && strcmp(liveHash, storedHash) == 0) {
+=======
+      if (versionNo != getServerFileVersion("./._wtf_dir/.Manifest", filePath)) {
+	if (strcmp(getServerHash("./._wtf_dir/.Manifest", filePath), storedHash) != 0 && strcmp(liveHash, storedHash) == 0) {
+>>>>>>> Added update manifest on push, also make _wtf_ hidden, remove files
 	  // modify detected
 	  printf("M %s\n", filePath);
 	  memset(updateMessage, 0, 4096);
-	  sprintf(updateMessage, "M %s %s\n", filePath, getServerHash("./_wtf_dir/.Manifest", filePath));
+	  sprintf(updateMessage, "M %s %s\n", filePath, getServerHash("./._wtf_dir/.Manifest", filePath));
 	  writen(updateFile, updateMessage, strlen(updateMessage));
 	}
-      } else if (strcmp(storedHash, liveHash) != 0 && strcmp(storedHash, getServerHash("./_wtf_dir/.Manifest", filePath)) != 0) {
+      } else if (strcmp(storedHash, liveHash) != 0 && strcmp(storedHash, getServerHash("./._wtf_dir/.Manifest", filePath)) != 0) {
 	// conflict detected
 	conflictDetected = 1;
 	printf("C %s\n", filePath);
@@ -250,11 +259,16 @@ void update(int argc, char* argv[]) {
     remove(updatePath);
     close(conflictFile);
     printf("You must resolve conflicts before you can update\n");
-    remove("./_wtf_dir/.Manifest");
+    remove("./._wtf_dir/.Manifest");
     return;
   } else { close(conflictFile); remove(conflictPath);}
   close(updateFile);
+<<<<<<< HEAD
   remove("./_wtf_dir/.Manifest");
+=======
+  close(conflictFile);
+  remove("./._wtf_dir/.Manifest");
+>>>>>>> Added update manifest on push, also make _wtf_ hidden, remove files
   return;
 }
 
@@ -279,8 +293,8 @@ void upgrade(int argc, char* argv[]) {
   send_file(sockfd, path);
   //tar with all needed things
   handle_response(sockfd);
-  //update all files from _wtf_dir, also has the manifest
-  system2("cd _wtf_dir && cp -rfp . ../", 0);
+  //update all files from ._wtf_dir, also has the manifest
+  system2("cd ._wtf_dir && cp -rfp . ../", 0);
   close(sockfd);
 }
 
@@ -319,7 +333,7 @@ void commit(int argc, char* argv[]) {
   //if (DEBUG) printf("got server manifest\n");
 
   // manifest fetched successfully, now compare to determine case
-  int serverManifest = open("./_wtf_dir/.Manifest", O_RDONLY);
+  int serverManifest = open("./._wtf_dir/.Manifest", O_RDONLY);
   char manifestPath[13 + strlen(projectname)];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   int clientManifest = open(manifestPath, O_RDONLY);
@@ -347,7 +361,7 @@ void commit(int argc, char* argv[]) {
     exit(1);
   }
   // compute live hashes for client project's files
-  char commitPath[11 + strlen(projectname)];
+  char commitPath[4096];
   char * id = readFile(".id");
   sprintf(commitPath, "./%s/.%sCommit", projectname, id);
   if (access(commitPath, F_OK) != -1) { // alredy exists, remove first so we can create new one
@@ -393,7 +407,7 @@ void commit(int argc, char* argv[]) {
     }
     sameHash = (strcmp(hashcode, manifestHash) == 0);
     // decide modify, add, or nothing
-    sa = checkMA("./_wtf_dir/.Manifest", filePath, versionNo, manifestHash, sameHash, commitFile);
+    sa = checkMA("./._wtf_dir/.Manifest", filePath, versionNo, manifestHash, sameHash, commitFile);
     if (sa == -1) { // not synced before commit, delete .Commit
       close(commitFile);
       close(serverManifest);
@@ -401,25 +415,24 @@ void commit(int argc, char* argv[]) {
       close(sockfd);
       printf("Disconnected from server\n");
       remove(commitPath);
-      remove("./_wtf_dir/.Manifest");
+      remove("./._wtf_dir/.Manifest");
       return;
     }
     status = read(clientManifest, &clientC, 1);
   }
   // check for delete...
-  checkD("./_wtf_dir/.Manifest", manifestPath, commitFile);
+  checkD("./._wtf_dir/.Manifest", manifestPath, commitFile);
   close(commitFile);
   close(serverManifest);
   close(clientManifest);
   // send .Commit to server and declare success
-  printf("Client: [%s]\n", id);
   writen2(sockfd, "32 d %s ", id);
   send_file(sockfd, commitPath);
   handle_response(sockfd);
   free(id);
   close(sockfd);
   printf("Disconnected from server\n");
-  remove("./_wtf_dir/.Manifest");
+  remove("./._wtf_dir/.Manifest");
   return;
 }
 
@@ -469,27 +482,29 @@ void push(int argc, char* argv[]) {
     hash = tok;
     //    printf("C[%c]P[%s]V[%d]H[%s]\n", code, path, version, hash);
     zip_add2(path);
-    //set permissions so we know to delete
+    //ensure permissions allow us to delete it
     if (code == 'D') {
-      system2("chmod 704 ./_wtf_dir/%s", path);
+      system2("chmod 704 ./._wtf_dir/%s", path);
     }
   }
   zip_tar();
   writen2(sock, "51 %s ", id);
   char * size = malloc(64);
-  memset(size, 0, 64);
   sprintf(size, "%d", zip_size());
   writen(sock, size, strlen(size));
   free(size);
   writen(sock, " ", 1);
-  int tarfd = open("./_wtf_tar", O_RDONLY);
+  int tarfd = open("./._wtf_tar", O_RDONLY);
   f2f(tarfd, sock, zip_size());
   close(tarfd);
   free(commit);
-  free(id);
   
-  //recieve success message
+  //remove .Commit
+  system3("rm %s/.%sCommit", argv[2], id);
+  free(id);  
+  //update manifest on push success
   handle_response(sock);
+  system2("cp ./._wtf_dir/.Manifest %s", argv[2]);
   close(sock);
   printf("Disconnected from server\n");
   return;
@@ -510,7 +525,7 @@ void create(int argc, char* argv[]) {
   writen2(sockfd, "61 %s 0 ", projectname);
 
   handle_response(sockfd);  
-  system2("mv ./_wtf_dir/.Manifest %s", projectname);
+  system2("mv ./._wtf_dir/.Manifest %s", projectname);
   close(sockfd);
   printf("Disconnected from server\n");
 }
@@ -696,7 +711,7 @@ void currentversion(int argc, char* argv[]) {
   close(sockfd);
   printf("Disconnected from server\n");
   // manifest is in wtf
-  int manifest = open ("./_wtf_dir/.Manifest", O_RDONLY);
+  int manifest = open ("./._wtf_dir/.Manifest", O_RDONLY);
   char c = '?';
   while (c != '\n') read(manifest, &c, 1);
   int status = read(manifest, &c, 1);
@@ -719,7 +734,7 @@ void currentversion(int argc, char* argv[]) {
   	status = read(manifest, &c, 1);
   }
   close(manifest);
-  remove("./_wtf_dir/.Manifest");
+  remove("./._wtf_dir/.Manifest");
   return;
 }
 
@@ -732,7 +747,7 @@ void history(int argc, char* argv[]) {
   // read and output info
   handle_response(socket);
   close(socket);
-  system2("cat ./_wtf_dir/.History", 0);
+  system2("cat ./._wtf_dir/.History", 0);
   return;
 }
 
@@ -783,6 +798,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   //sleep for 100 ms
+  system("rm -r ._wtf_dir > /dev/null 2>&1");
+  system("rm ._wtf_tar > /dev/null 2>&1");
   usleep(1000*100);
   return 0;
 }
