@@ -8,5 +8,3 @@ Test 4
 $ ./WTF commit myproject
 Test 5
 $ ./WTF push myproject
-Test 6
-$ ./WTF update myproject
