@@ -116,7 +116,6 @@ void commit(packet * p, int socket ) {
   // send error if manifest doesn't exist in project
   if (access(manifestPath, F_OK) == -1) {
     writen(socket, "01 m 0 ", 7);
-    
     return;
   }
   
@@ -124,9 +123,9 @@ void commit(packet * p, int socket ) {
   if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "31 i ", 0);
   send_file(socket, manifestPath);
-  //first sent packet^^
   packet * e = parse_request(socket);
-  system2("cp ./_wtf_dir/.Commit %s", projectname);
+  printf("Server: [%s][%s]\n", e->args[1], projectname);
+  system3("cp ./_wtf_dir/.%sCommit %s",e->args[1], projectname);
   writen2(socket, "31 t 0 ", 0);
   
   return;
@@ -134,10 +133,12 @@ void commit(packet * p, int socket ) {
 
 void push(packet * p, int socket ) {
   //ensure .Commit matches
-  char path[4096];
-  sprintf(path, "./%s/.Commit", p->args[0]);
-  char * serverC = readFile(path);
-  char * clientC = readFile("./_wtf_dir/.Commit");
+  char serverPath[4096];
+  char clientPath[4096];
+  sprintf(serverPath, "./%s/.%sCommit", p->args[0], p->args[1]);
+  sprintf(clientPath, "./_wtf_dir/.%sCommit", p->args[1]);
+  char * serverC = readFile(serverPath);
+  char * clientC = readFile(clientPath);
   int b = strcmp(serverC, clientC);
   free(serverC);
   free(clientC);
@@ -167,13 +168,13 @@ void push(packet * p, int socket ) {
   //delete deleted files
   system2("cd %s && find . -type f -perm 704 -delete", p->args[0]);
   //update history TODO: add client ID to commit
-  system2("cd %s && cat .Commit >> .History", p->args[0]);
+  system3("cd %s && cat .%sCommit >> .History", p->args[0], p2->args[0]);
   
   //update project/file versions, hashes, status codes
   //put entries to delete into list
   char commitPath[4096];
   char * entries[8192];
-  sprintf(commitPath, "%s/.Commit", p->args[0]);
+  sprintf(commitPath, "%s/.%sCommit", p->args[0], p2->args[0]);
   char * commit = readFile(commitPath);
   char * tok;
   char * path2;
@@ -229,7 +230,7 @@ void push(packet * p, int socket ) {
     }
   }
   //append deleted (add or modify) entries
-  system3("sed '/^D/ d' < %s/.Commit > %s/.Commit2", p->args[0], p->args[0]);
+  system3("cd %s && sed '/^D/ d' < .%sCommit > .Commit2", p->args[0], p2->args[0]);
   system3("sed 's/^..//' %s/.Commit2 >> %s/.Manifest2", p->args[0], p->args[0]);
   //replace original manifest with new
   system2("cd %s && mv .Manifest2 .Manifest", p->args[0]);

@@ -14,8 +14,13 @@
 #include "../util.h"
 #define DEBUG 0
 
+char * id;
+
 // returns socket fd of stream, exits if fails
 int c_connect() {
+  if (access(".id", F_OK) == -1) { //generate ID for commit and push
+    system2("printf `date +%%N` > .id", 0);
+  }
   if (access("./.configure", F_OK) == -1) {
     printf("Error: Expected to run configure before this, no .configure file found\n");
     exit(1);
@@ -318,7 +323,8 @@ void commit(int argc, char* argv[]) {
   // compute live hashes for client project's files
   int status = read(clientManifest, &clientC, 1);
   char commitPath[11 + strlen(projectname)];
-  sprintf(commitPath, "./%s/.Commit", projectname);
+  char * id = readFile(".id");
+  sprintf(commitPath, "./%s/.%sCommit", projectname, id);
   if (access(commitPath, F_OK) != -1) { // alredy exists, remove first so we can create new one
     remove(commitPath);
   }
@@ -383,9 +389,11 @@ void commit(int argc, char* argv[]) {
   close(serverManifest);
   close(clientManifest);
   // send .Commit to server and declare success
-  writen(sockfd, "31 d ", 5);
+  printf("Client: [%s]\n", id);
+  writen2(sockfd, "32 d %s ", id);
   send_file(sockfd, commitPath);
   handle_response(sockfd);
+  free(id);
   close(sockfd);
   printf("Disconnected from server\n");
   remove("./_wtf_dir/.Manifest");
@@ -395,8 +403,8 @@ void commit(int argc, char* argv[]) {
 void push(int argc, char* argv[]) {
   check_args(argc, 3);
   char commitPath[4096];
-  sprintf(commitPath, "%s/.Commit", argv[2]);
-
+  char * id = readFile(".id");
+  sprintf(commitPath, "%s/.%sCommit", argv[2], id);
   //create and send tar w/ the files
   char * commit = readFile(commitPath);
   if (strlen(commit) <= 0) {
@@ -409,7 +417,9 @@ void push(int argc, char* argv[]) {
     return;
   }
   int sock = c_connect();
-  writen2(sock, "51 %s ", argv[2]);
+  char buf[4096];
+  sprintf(buf, "52 %s %s ", argv[2], id);
+  writen2(sock, buf, 0);
   send_file(sock, commitPath);
   //initial check of project & commit
   handle_response(sock);
@@ -442,7 +452,7 @@ void push(int argc, char* argv[]) {
     }
   }
   zip_tar();
-  writen2(sock, "50 ", 0);
+  writen2(sock, "51 %s ", id);
   char * size = malloc(64);
   memset(size, 0, 64);
   sprintf(size, "%d", zip_size());
@@ -453,6 +463,7 @@ void push(int argc, char* argv[]) {
   f2f(tarfd, sock, zip_size());
   close(tarfd);
   free(commit);
+  free(id);
   
   //recieve success message
   handle_response(sock);
