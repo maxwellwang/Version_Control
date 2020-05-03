@@ -179,7 +179,7 @@ int runAndCheck(char command[]) {
   		version[bytes++] = c;
   		read(serverManifest, &c, 1);
   	}
-  	if (atoi(version) == argv[3]) return 1;
+  	if (strcmp(version, argv[3]) == 0) return 1;
     break;
   default:
     return 0; // shouldn't be here
@@ -199,7 +199,6 @@ int main() {
   while (status) {
     if (c == '$') {
     	printf("Test %d:\n", testCounter);
-    	read(file, &c, 1); // space
     	numCommands = 0;
       	// parse commands and check results
 	  	while (c != '\n') {
@@ -213,7 +212,7 @@ int main() {
 		      	command[commandLength++] = c;
 		      	read(file, &c, 1);
 		    }
-		    printf ("Command: %s\n", command);
+		    printf ("Command:%s\n", command);
 		    if (runAndCheck(command) == 1) {
 		    	printf("Command successful\n");
 		    } else {

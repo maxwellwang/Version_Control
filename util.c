@@ -389,8 +389,8 @@ MANIFEST STUFF
 
 char* getServerHash(char serverManifestPath[], char inputPath[]) {
   int manifest = open(serverManifestPath, O_RDONLY);
-  char filePath[4096], version[10], c = '?';
-  char* storedHash = (char*) malloc(33);
+  char filePath[4096], version[4096], c = '?';
+  char* storedHash = (char*) malloc(4096);
   int filePathLength, versionLength, storedHashLength, versionNo;
   while (c != '\n') read(manifest, &c, 1);
   int status = read(manifest, &c, 1);
@@ -414,7 +414,7 @@ char* getServerHash(char serverManifestPath[], char inputPath[]) {
     versionNo = atoi(version);
     // hash
     storedHashLength = 0;
-    memset(hash, 0, 4096);
+    memset(storedHash, 0, 4096);
     read(manifest, &c, 1);
     while (c != '\n') {
       storedHash[storedHashLength++] = c;
@@ -434,9 +434,8 @@ char* getServerHash(char serverManifestPath[], char inputPath[]) {
 
 int getServerFileVersion(char serverManifestPath[], char inputPath[]) {
   int manifest = open(serverManifestPath, O_RDONLY);
-  char filePath[4096], version[10], c = '?';
-  char storedHash[33];
-  int filePathLength, versionLength, storedHashLength, versionNo;
+  char filePath[4096], version[4096], c = '?';
+  int filePathLength, versionLength, versionNo;
   while (c != '\n') read(manifest, &c, 1);
   int status = read(manifest, &c, 1);
   while (status) {
@@ -457,12 +456,8 @@ int getServerFileVersion(char serverManifestPath[], char inputPath[]) {
       read(manifest, &c, 1);
     }
     versionNo = atoi(version);
-    // hash
-    storedHashLength = 0;
-    memset(hash, 0, 4096);
-    read(manifest, &c, 1);
+    // hash, skip and read til newline
     while (c != '\n') {
-      storedHash[storedHashLength++] = c;
       read(manifest, &c, 1);
     }
     // line read in, if file path matches then return versionNo

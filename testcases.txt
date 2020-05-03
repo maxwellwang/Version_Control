@@ -5,4 +5,8 @@ $ ./WTF create myproject
 Test 3
 $ echo "text" > myproject/myfile; ./WTF add myproject myfile
 Test 4
-$ echo "myproject/myfile 1 e1cbb0c3879af8347246f12c559a86b5" >> ../serverDir/myproject/.Manifest; echo "text" > ../serverDir/myproject/myfile; echo "a" > myproject/myfile; ./WTF commit myproject
+$ ./WTF commit myproject
+Test 5
+$ ./WTF push myproject
+Test 6
+$ ./WTF update myproject

@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include "../util.h"
-#define DEBUG 0
+#define DEBUG 1
 
 char * id;
 
@@ -147,7 +147,7 @@ void update(int argc, char* argv[]) {
   // begin comparing manifests
   int conflictDetected = 0;
   unsigned char liveHash[33];
-  char filePath[4096], version[10], storedHash[33], c = '?', updateMessage[4096], conflictMessage[4096];
+  char filePath[4096], version[4096], storedHash[4096], c = '?', updateMessage[4096], conflictMessage[4096];
   int filePathLength, versionLength, storedHashLength, versionNo;
   int status = read(clientManifest, &c, 1);
   while (status) {
@@ -179,6 +179,7 @@ void update(int argc, char* argv[]) {
       read(clientManifest, &c, 1);
     }
     // line read in, check modify, delete, and conflict
+    //if (DEBUG) printf("file path to look for is %s\n", filePath);
     if (!fileInManifest("./_wtf_dir/.Manifest", filePath)) { // delete detected
       printf("D %s\n", filePath);
       memset(updateMessage, 0, 4096);
@@ -186,7 +187,9 @@ void update(int argc, char* argv[]) {
       writen(updateFile, updateMessage, strlen(updateMessage));
     } else { // file in server manifest
       if (versionNo != getServerFileVersion("./_wtf_dir/.Manifest", filePath)) {
-	if (strcmp(getServerHash("./_wtf_dir/.Manifest", filePath), storedHash) != 0 && strcmp(liveHash, storedHash) == 0) {
+	if (strcmp(getServerHash("./_wtf_dir/.Manifest", filePath), 
+	storedHash) != 0
+	 && strcmp(liveHash, storedHash) == 0) {
 	  // modify detected
 	  printf("M %s\n", filePath);
 	  memset(updateMessage, 0, 4096);
@@ -249,9 +252,8 @@ void update(int argc, char* argv[]) {
     printf("You must resolve conflicts before you can update\n");
     remove("./_wtf_dir/.Manifest");
     return;
-  }
+  } else { close(conflictFile); remove(conflictPath);}
   close(updateFile);
-  close(conflictFile);
   remove("./_wtf_dir/.Manifest");
   return;
 }
@@ -312,9 +314,9 @@ void commit(int argc, char* argv[]) {
   // fetch server project's .Manifest
   int sockfd = c_connect();
   writen2(sockfd, "31 %s 0 ", projectname);
-  if (DEBUG) printf("sent request for server manifest\n");
+  //if (DEBUG) printf("sent request for server manifest\n");
   handle_response(sockfd);
-  if (DEBUG) printf("got server manifest\n");
+  //if (DEBUG) printf("got server manifest\n");
 
   // manifest fetched successfully, now compare to determine case
   int serverManifest = open("./_wtf_dir/.Manifest", O_RDONLY);
@@ -527,7 +529,7 @@ void add(int argc, char* argv[]) {
   check_args(argc, 4);
   // argv[2] project name get rid of / if there is one
   char* projectname = parse_dir(argv[2]);
-  if (DEBUG) printf("projectname: %s\n", projectname);
+  //if (DEBUG) printf("projectname: %s\n", projectname);
   char manifestPath[13 + strlen(projectname)];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   char filePath[4 + strlen(projectname) + strlen(argv[3])];
