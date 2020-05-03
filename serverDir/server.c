@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include "../util.h"
 #define CONNECTION_QUEUE_SIZE 10
-#define DEBUG 1
+#define DEBUG 0
 
 // global vars -> the files, sockets, pointers that exit function needs
 // mutex array
@@ -124,7 +124,10 @@ void commit(packet * p, int socket ) {
   writen2(socket, "31 i ", 0);
   send_file(socket, manifestPath);
   packet * e = parse_request(socket);
-  printf("Server: [%s][%s]\n", e->args[1], projectname);
+
+  if (e->args[0] == "z") { // manifest versions don't match, stop
+  	return;
+  }
   system3("cp ./_wtf_dir/.%sCommit %s",e->args[1], projectname);
   writen2(socket, "31 t 0 ", 0);
   

@@ -170,9 +170,9 @@ void update(int argc, char* argv[]) {
       read(clientManifest, &c, 1);
     }
     versionNo = atoi(version);
-    // hash
+    // read stored hash
     storedHashLength = 0;
-    memset(hash, 0, 4096);
+    memset(storedHash, 0, 4096);
     read(clientManifest, &c, 1);
     while (c != '\n') {
       storedHash[storedHashLength++] = c;
@@ -226,7 +226,7 @@ void update(int argc, char* argv[]) {
     versionNo = atoi(version);
     // hash
     storedHashLength = 0;
-    memset(hash, 0, 4096);
+    memset(storedHash, 0, 4096);
     read(serverManifest, &c, 1);
     while (c != '\n') {
       storedHash[storedHashLength++] = c;
@@ -316,6 +316,7 @@ void commit(int argc, char* argv[]) {
     printf("Error: Manifest versions do not match, update local project first\n");
     close(serverManifest);
     close(clientManifest);
+    writen(sockfd, "31 z 0 ", 7);
     close(sockfd);
     printf("Disconnected from server\n");
     exit(1);

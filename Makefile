@@ -1,5 +1,5 @@
 all: clientDir/client.c serverDir/server.c util.o
-	(cd clientDir; gcc -o "WTF" client.c ../util.o; touch hashfile); (cd serverDir; gcc -o "WTFserver" server.c -lpthread ../util.o);
+	(cd clientDir; gcc -g -o "WTF" client.c ../util.o; touch hashfile); (cd serverDir; gcc -g -o "WTFserver" server.c -lpthread ../util.o);
 
 util.o: util.c
 	gcc -c util.c
