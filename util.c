@@ -392,6 +392,7 @@ char* getServerHash(char serverManifestPath[], char inputPath[]) {
   char filePath[4096], version[10], c = '?';
   char* storedHash = (char*) malloc(33);
   int filePathLength, versionLength, storedHashLength, versionNo;
+  while (c != '\n') read(manifest, &c, 1);
   int status = read(manifest, &c, 1);
   while (status) {
     // filePath
@@ -436,6 +437,7 @@ int getServerFileVersion(char serverManifestPath[], char inputPath[]) {
   char filePath[4096], version[10], c = '?';
   char storedHash[33];
   int filePathLength, versionLength, storedHashLength, versionNo;
+  while (c != '\n') read(manifest, &c, 1);
   int status = read(manifest, &c, 1);
   while (status) {
     // filePath
@@ -482,26 +484,21 @@ int fileInManifest(char manifestPath[], char filePath[]) {
   char tempFilePath[4096];
   memset(tempFilePath, 0, 4096);
   int length = 0;
+  while (c != '\n') read(manifest, &c, 1);
   int status = read(manifest, &c, 1);
   while (status > 0) {
-    if (c == ' ') {
-      // read file path and compare to param file path
-      memset(tempFilePath, 0, 4096);
-      length = 0;
-      read(manifest, &c, 1);
-      while (c != ' ') {
-	tempFilePath[length++] = c;
-	read(manifest, &c, 1);
-      }
-      if (strcmp(tempFilePath, filePath) == 0) { // found it, return true
-	close(manifest);
-	return 1;
-      } else { // read to newline
-	while (c != '\n') {
-	  read(manifest, &c, 1);
-	}
-      }
+    // first read already done
+    memset(tempFilePath, 0, 4096);
+    length = 0;
+    while (c != ' ') {
+    	tempFilePath[length++] = c;
+    	read(manifest, &c, 1);
     }
+    if ( strcmp(tempFilePath, filePath) == 0 ) {
+    	close(manifest);
+    	return 1;
+    }
+    while (c != '\n') read(manifest, &c, 1);
     status = read(manifest, &c, 1); // if file is done, status will be 0
   }
   close(manifest);
@@ -521,14 +518,14 @@ int checkMA(char serverManifestPath[], char filePath[], int versionNo, char mani
   memset(version, 0, 10);
   int versionLength = 0;
   int serverFileVersionNo;
-  read(serverManifest, &c, 1); // skip manifest version
+  // skip manifest version
   while (c != '\n') read(serverManifest, &c, 1);
   int status = read(serverManifest, &c, 1);
   while (status > 0) {
     // read file path and compare
     length = 0;
     memset(tempFilePath, 0, 4096);
-    read(serverManifest, &c, 1);
+    // first read already done
     while (c != ' ') {
       tempFilePath[length++] = c;
       read(serverManifest, &c, 1);
@@ -555,7 +552,7 @@ int checkMA(char serverManifestPath[], char filePath[], int versionNo, char mani
 	break;
       }
       // if server file version is geq client file version, error
-      if (serverFileVersionNo >= versionNo) {
+      if (serverFileVersionNo >= versionNo && strcmp(manifestHash, serverHash) != 0) {
 	printf("Error: Must sync with repository before committing changes\n");
 	return -1;
       }
@@ -565,7 +562,7 @@ int checkMA(char serverManifestPath[], char filePath[], int versionNo, char mani
     status = read(serverManifest, &c, 1);
   }
   if (!fileInManifest(serverManifestPath, filePath)) { // add code detected
-    code = 'A';
+  	code = 'A';
   }
   if (code == '?') { // neither modify nor add
     return 0;
@@ -587,8 +584,8 @@ void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile
   char tempFilePath[4096];
   memset(tempFilePath, 0, 4096);
   int length = 0;
-  char serverHash[33];
-  memset(serverHash, 0, 33);
+  char serverHash[4096];
+  memset(serverHash, 0, 4096);
   int serverHashLength = 0;
   char version[10];
   int versionLength = 0;
@@ -600,7 +597,7 @@ void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile
     // read file path and compare
     length = 0;
     memset(tempFilePath, 0, 4096);
-    read(serverManifest, &c, 1);
+    // first read already done
     while (c != ' ') {
       tempFilePath[length++] = c;
       read(serverManifest, &c, 1);
@@ -608,6 +605,7 @@ void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile
     // read version
     versionLength = 0;
     memset(version, 0, 10);
+    read(serverManifest, &c, 1);
     while (c != ' ') {
       version[versionLength++] = c;
       read(serverManifest, &c, 1);
@@ -618,6 +616,7 @@ void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile
     memset(serverHash, 0, 4096);
     read(serverManifest, &c, 1);
     while (c != '\n') {
+    	
       serverHash[serverHashLength++] = c;
       read(serverManifest, &c, 1);
     }

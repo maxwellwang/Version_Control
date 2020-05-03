@@ -322,7 +322,6 @@ void commit(int argc, char* argv[]) {
     exit(1);
   }
   // compute live hashes for client project's files
-  int status = read(clientManifest, &clientC, 1);
   char commitPath[11 + strlen(projectname)];
   char * id = readFile(".id");
   sprintf(commitPath, "./%s/.%sCommit", projectname, id);
@@ -335,11 +334,12 @@ void commit(int argc, char* argv[]) {
   int versionNo;
   char filePath[4096];
   int filePathLength = 0;
-  unsigned char hashcode[4096];
+  unsigned char hashcode[4096]; // the live hash
   char manifestHash[33];
   int manifestHashLength = 0;
   int sameHash = 1;
   int sa;
+  int status = read(clientManifest, &clientC, 1);
   while (status > 0) {
     // read into filePath
     memset(filePath, 0, 4096);
@@ -366,7 +366,7 @@ void commit(int argc, char* argv[]) {
       manifestHash[manifestHashLength++] = clientC;
       read(clientManifest, &clientC, 1);
     }
-    sameHash = !(strcmp(hashcode, manifestHash));
+    sameHash = (strcmp(hashcode, manifestHash) == 0);
     // decide modify, add, or nothing
     sa = checkMA("./_wtf_dir/.Manifest", filePath, versionNo, manifestHash, sameHash, commitFile);
     if (sa == -1) { // not synced before commit, delete .Commit
@@ -380,9 +380,6 @@ void commit(int argc, char* argv[]) {
       return;
     }
     status = read(clientManifest, &clientC, 1);
-    while (status > 0 && isspace(clientC)) { // read until non whitespace or end of file
-      status = read(clientManifest, &clientC, 1);
-    }
   }
   // check for delete...
   checkD("./_wtf_dir/.Manifest", manifestPath, commitFile);

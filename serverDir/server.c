@@ -125,7 +125,7 @@ void commit(packet * p, int socket ) {
   send_file(socket, manifestPath);
   packet * e = parse_request(socket);
 
-  if (e->args[0] == "z") { // manifest versions don't match, stop
+  if (strcmp(e->args[0], "z") == 0) { // manifest versions don't match, stop
   	return;
   }
   system3("cp ./_wtf_dir/.%sCommit %s",e->args[1], projectname);

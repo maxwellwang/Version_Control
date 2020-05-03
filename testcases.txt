@@ -1,20 +1,8 @@
 Test 1
-$ ./WTF configure 127.0.0.1 8080
+$ ./WTF configure frost.cs.rutgers.edu 8080
 Test 2
 $ ./WTF create myproject
 Test 3
 $ echo "text" > myproject/myfile; ./WTF add myproject myfile
 Test 4
-$ ./WTF commit myproject; ./WTF create myproject2
-Test 5
-$ rm -r myproject2; ./WTF checkout myproject2; ./WTF create myproject3
-Test 6
-$ ./WTF destroy myproject3
-Test 7
-$ ./WTF push myproject
-Test 8
-$ ./WTF history myproject
-Test 9
-$ ./WTF rollback myproject 1
-Test 10
-$ ./WTF update myproject
+$ echo "myproject/myfile 1 e1cbb0c3879af8347246f12c559a86b5" >> ../serverDir/myproject/.Manifest; echo "text" > ../serverDir/myproject/myfile; echo "a" > myproject/myfile; ./WTF commit myproject

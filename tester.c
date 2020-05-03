@@ -75,6 +75,7 @@ int runAndCheck(char command[]) {
   char serverManifestPath[4096];
   char serverCommitPath[4096];
   char clientCommitPath[4096];
+  char serverFilePath[4096];
   int clientManifest, bytes, status;
   switch (code) {
   case 0: // configure, check if .configure file was made
@@ -99,9 +100,9 @@ int runAndCheck(char command[]) {
   	sprintf(clientCommitPath, "./clientDir/%s/.Commit", argv[2]);
     if (access(clientCommitPath, F_OK) != -1 && access(serverCommitPath, F_OK) != -1) return 1;
     break;
-  case 5:
-    sprintf(serverProjectPath, "./serverDir/%s/myfile", argv[2]);
-    if (access(serverProjectPath, F_OK) != -1) {
+  case 5: // push
+    sprintf(serverFilePath, "./serverDir/%s/myfile", argv[2]);
+    if (access(serverFilePath, F_OK) != -1) {
       return 1;
     }
     break;
