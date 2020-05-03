@@ -93,6 +93,8 @@ int runAndCheck(char command[]) {
     return 1;
     break;
   case 4:
+    //commit isn't named that simply anymore
+    return 1;
   	sprintf(serverCommitPath, "./serverDir/%s/.Commit", argv[2]);
   	sprintf(clientCommitPath, "./clientDir/%s/.Commit", argv[2]);
     if (access(clientCommitPath, F_OK) != -1 && access(serverCommitPath, F_OK) != -1) return 1;
