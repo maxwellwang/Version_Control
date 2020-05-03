@@ -76,7 +76,10 @@ int runAndCheck(char command[]) {
   char serverCommitPath[4096];
   char clientCommitPath[4096];
   char serverFilePath[4096];
-  int clientManifest, bytes, status;
+  char updatePath[4096], conflictPath[4096];
+  char version[4096];
+  int clientManifest, bytes, status, serverManifest;
+  char c = '?';
   switch (code) {
   case 0: // configure, check if .configure file was made
     if (access("./clientDir/.configure", F_OK) != -1) {
@@ -90,9 +93,13 @@ int runAndCheck(char command[]) {
       return 1;
     }
     break;
-  case 2: //update
-    return 1;
+  case 2: //update, check for update or conflict
+    sprintf(updatePath, "./clientDir/%s/.Update", argv[2]);
+    sprintf(conflictPath, "./clientDir/%s/.Conflict", argv[2]);
+    if (access(updatePath, F_OK) != -1 || access(conflictPath, F_OK) != -1) return 1;
     break;
+  case 3: // upgrade
+  	break;
   case 4:
     //commit isn't named that simply anymore
     return 1;
@@ -158,12 +165,21 @@ int runAndCheck(char command[]) {
     return 1;
     break;
   case 10: // currentversion
+  	return 1;
     break;
-  case 11: // hsitory
+  case 11: // history
     return 1;
     break;
-  case 12: //rollback
-    return 1;
+  case 12: //rollback, check if server manifest is the requested version
+  	sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
+  	serverManifest = open(serverManifestPath, O_RDONLY);
+  	read(serverManifest, &c, 1);
+  	bytes = 0;
+  	while (c != '\n') {
+  		version[bytes++] = c;
+  		read(serverManifest, &c, 1);
+  	}
+  	if (atoi(version) == argv[3]) return 1;
     break;
   default:
     return 0; // shouldn't be here
