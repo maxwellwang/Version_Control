@@ -107,6 +107,40 @@ void update(packet * p, int socket ) {
 }
 
 void upgrade(packet * p, int socket ) {
+  char * update = readFile("_wtf_dir/.Update");
+  char * tok;
+  char code;
+  char * path;
+  char * hash;
+  int version;
+  int first = 1;
+  zip_init();
+  while (1) {
+    tok = strtok(first == 1 ? update : NULL, " \n");
+    first = 0;
+    if (tok == NULL) {
+      break;
+    }
+    code = tok[0];
+    tok = strtok(NULL, " \n");
+    path = tok;
+    tok = strtok(NULL, " \n");
+    version = atoi(tok);
+    tok = strtok(NULL, " \n");
+    hash = tok;
+    if (code != 'D') {
+      zip_add2(path);
+    }
+  }
+  zip_tar();
+  char buf[4096];
+  sprintf(buf, "21 t %d ", zip_size());
+  writen2(socket, buf, 0);
+  int tarfd = open("./_wtf_tar", O_RDONLY);
+  f2f(tarfd, socket, zip_size());
+  close(tarfd);
+  free(update);
+  return;
 }
 
 void commit(packet * p, int socket ) {
@@ -147,8 +181,7 @@ void push(packet * p, int socket ) {
   free(clientC);
 
   if (b != 0) {
-    writen2(socket, "51 c 0 ", 0);
-    
+    writen2(socket, "51 c 0 ", 0);    
     return;
   } else {
     writen2(socket, "51 i 0 ", 0);

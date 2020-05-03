@@ -4,8 +4,8 @@ all: clientDir/client.c serverDir/server.c util.o
 util.o: util.c
 	gcc -c util.c
 
-test: tester.c
+test: all tester.c
 	gcc -o "WTFtest" tester.c
 
 clean:
-	rm -rf clientDir/WTF serverDir/WTFserver WTFtest clientDir/.configure serverDir/myproject* util.o clientDir/myproject* clientDir/hashfile clientDir/_* serverDir/_* serverDir/.*v* *~ clientDir/.*
+	rm -rf clientDir/WTF serverDir/WTFserver WTFtest clientDir/.configure serverDir/myproject* util.o clientDir/myproject* clientDir/hashfile clientDir/_* serverDir/_* serverDir/.*v* *~

@@ -255,8 +255,31 @@ void update(int argc, char* argv[]) {
   remove("./_wtf_dir/.Manifest");
   return;
 }
+
 void upgrade(int argc, char* argv[]) {
   check_args(argc, 3);
+  char path[4096];
+  sprintf(path, "%s/.Conflict", argv[2]);
+  if (access(path, F_OK) != -1) {
+    printf("Error: Conflicts exist, upgrade failed\n");
+    exit(1);
+  }
+  sprintf(path, "%s/.Update", argv[2]);
+  if (access(path, F_OK) == -1) {
+    printf("Error: No update found, upgrade failed\n");
+    exit(1);
+  }
+  
+  //request files from server
+  //send server the .Update 
+  int sockfd = c_connect();
+  writen2(sockfd, "21 %s ", argv[2]);
+  send_file(sockfd, path);
+  //tar with all needed things
+  handle_response(sockfd);
+  //update all files from _wtf_dir, also has the manifest
+  system2("cd _wtf_dir && cp -rfp . ../", 0);
+  close(sockfd);
 }
 
 void commit(int argc, char* argv[]) {
