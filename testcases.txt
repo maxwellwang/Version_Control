@@ -1,10 +1,19 @@
 Test 1
 $ ./WTF configure frost.cs.rutgers.edu 8080
+Expected: Created .configure file containing "frost.cs.rutgers.edu 8080"
 Test 2
 $ ./WTF create myproject
+Expected: Created myproject dir in both client and server repositories, with manifests containing "0"
 Test 3
 $ echo "text" > myproject/myfile; ./WTF add myproject myfile
+Expected: Added myproject/myfile line to client manifest, with version number 0 and generated hash
 Test 4
 $ ./WTF commit myproject
+Expected: Created .Commit file noting that a myfile should be added to the server's myproject when push occurs
 Test 5
 $ ./WTF push myproject
+Expected: 
+Test 6
+$ ./WTF update myproject
+Test 7
+$ ./WTF upgrade myproject

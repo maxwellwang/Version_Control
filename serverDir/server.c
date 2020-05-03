@@ -300,7 +300,7 @@ void create(packet * p, int socket) {
   char manifestPath[pathLength];
   sprintf(manifestPath, "./%s/.Manifest", p->args[0]);
   int manifest = open(manifestPath, O_WRONLY | O_CREAT, 00600);
-  writen(manifest, "1\n", 2);
+  writen(manifest, "0\n", 2); // starting manifest version of 0
   close(manifest);
   writen(socket, "61 t ", 5);
   send_file(socket, manifestPath); // send manifest to client

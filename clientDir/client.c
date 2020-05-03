@@ -567,7 +567,7 @@ void add(int argc, char* argv[]) {
       writen(manifest, projectname, strlen(projectname)); // project name
       writen(manifest, "/", 1);
       writen(manifest, argv[3], strlen(argv[3])); // file name
-      writen(manifest, " 1 ", 3); // version 1
+      writen(manifest, " 0 ", 3); // version 0
       unsigned char hashcode[4096];
       hash(filePath, hashcode);
       writen(manifest, hashcode, 32); // hashcode
