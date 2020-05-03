@@ -179,26 +179,14 @@ void update(int argc, char* argv[]) {
       read(clientManifest, &c, 1);
     }
     // line read in, check modify, delete, and conflict
-<<<<<<< HEAD
-    //if (DEBUG) printf("file path to look for is %s\n", filePath);
-    if (!fileInManifest("./_wtf_dir/.Manifest", filePath)) { // delete detected
-=======
     if (!fileInManifest("./._wtf_dir/.Manifest", filePath)) { // delete detected
->>>>>>> Added update manifest on push, also make _wtf_ hidden, remove files
       printf("D %s\n", filePath);
       memset(updateMessage, 0, 4096);
       sprintf(updateMessage, "D %s %s\n", filePath, storedHash);
       writen(updateFile, updateMessage, strlen(updateMessage));
     } else { // file in server manifest
-<<<<<<< HEAD
-      if (versionNo != getServerFileVersion("./_wtf_dir/.Manifest", filePath)) {
-	if (strcmp(getServerHash("./_wtf_dir/.Manifest", filePath), 
-	storedHash) != 0
-	 && strcmp(liveHash, storedHash) == 0) {
-=======
       if (versionNo != getServerFileVersion("./._wtf_dir/.Manifest", filePath)) {
 	if (strcmp(getServerHash("./._wtf_dir/.Manifest", filePath), storedHash) != 0 && strcmp(liveHash, storedHash) == 0) {
->>>>>>> Added update manifest on push, also make _wtf_ hidden, remove files
 	  // modify detected
 	  printf("M %s\n", filePath);
 	  memset(updateMessage, 0, 4096);
@@ -263,12 +251,8 @@ void update(int argc, char* argv[]) {
     return;
   } else { close(conflictFile); remove(conflictPath);}
   close(updateFile);
-<<<<<<< HEAD
-  remove("./_wtf_dir/.Manifest");
-=======
   close(conflictFile);
   remove("./._wtf_dir/.Manifest");
->>>>>>> Added update manifest on push, also make _wtf_ hidden, remove files
   return;
 }
 
