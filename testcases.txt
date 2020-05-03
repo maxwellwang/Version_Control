@@ -1,18 +1,19 @@
 Test 1
-$ ./WTF configure 127.0.0.1 8080
+$ ./WTF configure frost.cs.rutgers.edu 8080
+Expected: Created .configure file containing the inputted hostname and port number.
 Test 2
 $ ./WTF create myproject
-Expected: Created myproject dir in both client and server repositories, with manifests containing "0"
+Expected: Created myproject dir in both client and server repositories, with manifests containing "0".
 Test 3
 $ echo "text" > myproject/myfile; ./WTF add myproject myfile
-Expected: Added myproject/myfile line to client manifest, with version number 0 and generated hash
+Expected: Added myproject/myfile line to client manifest, with version number 0 and generated hash.
 Test 4
 $ ./WTF commit myproject
-Expected: Created .Commit file noting that a myfile should be added to the server's myproject when push occurs
+Expected: Created .Commit file noting that a myfile should be added to the server's myproject when push occurs.
 Test 5
 $ ./WTF push myproject
 Expected: Server myproject manifest should have myfile and myfile should be in server project. Also, client myproject should match
-server myproject
+server myproject.
 Test 6
 $ ./WTF update myproject
 Expected: Client myproject .Update file is blank and program prints "Up To Date".
