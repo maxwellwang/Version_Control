@@ -51,3 +51,9 @@ Test 12
 $ ./WTF destroy myproject
 Finally, we test destroy. This destroys the project on the serverside. Now we have verified that we can create a project, perform
 multiple operations on it, and finally destroy the project once all is done.
+Thread Synchronization Test
+Additionally, we made requests of the server from multiple clients trying to edit or use the same project. We put sleep() lines
+within the server code for the first command and then attempted to execute the second command from another client. Each time, the
+second command was blocked due to the mutex lock of the project directory by the first client's command. Therefore, we knew that
+the threads were properly synchronized so that once one client/thread was accessing a project, other threads were blocked from
+interfering until the first client/thread had completed.
