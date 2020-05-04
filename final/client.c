@@ -77,7 +77,10 @@ void checkout(int argc, char* argv[]) {
     handle_response(sock);
     close(sock);
     printf("Disconnected from server\n");
-  }  
+
+    //remove files like .History and .Commits
+    system2("cd %s && rm -rf .History .*Commit", argv[2]);
+  } 
 }
 
 void configure(int argc, char* argv[]) {
@@ -502,13 +505,13 @@ void create(int argc, char* argv[]) {
   }
   
   int sockfd = c_connect();
+  writen2(sockfd, "61 %s 0 ", projectname);
+
+  handle_response(sockfd);
   if (mkdir(projectname, 0700) == -1) {
     printf("Error: could not create project %s\n", argv[2]);
     return;
   }
-  writen2(sockfd, "61 %s 0 ", projectname);
-
-  handle_response(sockfd);  
   system2("mv ./._wtf_dir/.Manifest %s", projectname);
   close(sockfd);
   printf("Disconnected from server\n");
