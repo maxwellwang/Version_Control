@@ -237,9 +237,11 @@ void push(packet * p, int socket ) {
     tok = strtok(NULL, " \n");
   }
   //go through Manifest and write out entries not needed to be deleted
-  i = 0;
   //manifest version
-  
+  int k;
+  for (; k < i; k++) {
+    printf("deleted: [%s]\n", entries[k]);
+  }
   int j, flag;
   sprintf(manPath, "%s/.Manifest", p->args[0]);
   manifest = readFile(manPath);

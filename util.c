@@ -9,7 +9,7 @@
 
 void hash(char* filename, char c[]) {
   char command[strlen(filename) + 19];
-  sprintf(command, "md5sum %s > hashfile 2>/dev/null", filename);
+  sprintf(command, "md5sum %s > hashfile", filename);
   system(command);
   int hashfile = open("hashfile", O_RDONLY);
   int i;

@@ -749,6 +749,9 @@ void rollback(int argc, char* argv[]) {
 
 
 int main(int argc, char* argv[]) {
+  if (argc < 2) {
+    printf("Error: please enter a command\n");
+  }
   // determine command to execute
   if (strcmp(argv[1], "configure") == 0) {
     configure(argc, argv);
