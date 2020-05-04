@@ -501,7 +501,7 @@ void push(int argc, char* argv[]) {
   free(id);  
   //update manifest on push success
   handle_response(sock);
-  system2("cp ./._wtf_dir/.Manifest %s", argv[2]);
+  system2("cp ./._wtf_dir/.Manifest %s 2>/dev/null", argv[2]);
   close(sock);
   printf("Disconnected from server\n");
   return;
