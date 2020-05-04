@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include "util.h"
-#define DEBUG 1
+#define DEBUG 0
 
 char * id;
 
@@ -610,10 +610,8 @@ void c_remove(int argc, char* argv[]) {
 	return;
       }
       char c = '?';
-      char path[4096];
-      char firstPart[4096];
+      char filename[4096];
       int length = 0;
-      int firstPartLength = 0;
       int status = read(manifest, &c, 1);
       while (c != '\n') {
 	writen(temp, &c, 1);
@@ -622,47 +620,41 @@ void c_remove(int argc, char* argv[]) {
       writen(temp, "\n", 1);
       status = read(manifest, &c, 1);
       while (status > 0) {
-	if (c == '/') {
-	  status = read(manifest, &c, 1);
-	  while (c != ' ') { // get file path to compare
-	    *(path + length) = c;
-	    length++;
-	    *(firstPart + firstPartLength) = c;
-	    firstPartLength++;
-	    status = read(manifest, &c, 1);
-	  }
-	  if (strcmp(argv[3], path) == 0) { // file to delete found, skip it for temp and finish
-	    while (c != '\n') {
-	      read(manifest, &c, 1);
-	    }
-	    status = read(manifest, &c, 1);
-	    while (status > 0) {
-	      writen(temp, &c, 1);
-	      read(manifest, &c, 1);
-	    }
-	    // replace manifest with temp
-	    remove(manifestPath);
-	    rename(tempPath, manifestPath);
-	    printf("Successfully removed file %s from project %s\n", argv[3], argv[2]);
-	    return;
-	  } else { // not the same file, add the line to temp
-	    writen(temp, firstPart, firstPartLength);
-	    writen(temp, " ", 1);
-	    read(manifest, &c, 1);
-	    while (c != '\n') {
-	      writen(temp, &c, 1);
-	      read(manifest, &c, 1);
-	    }
-	    length = 0;
-	    memset(path, 0, 4096);
-	    firstPartLength = 0;
-	    memset(firstPart, 0, 4096);
-	  }
-	} else {
-	  *(firstPart + firstPartLength) = c;
-	  firstPartLength++;
-	}
-	status = read(manifest, &c, 1);
+      	// first read projectname and /
+      	while (c != '/') read(manifest, &c, 1);
+      	// now read in file name
+      	memset(filename, 0, 4096);
+      	length = 0;
+      	read(manifest, &c, 1);
+      	while (c != ' ') {
+      		filename[length++] = c;
+      		read(manifest, &c, 1);
+      	}
+      	if ( strcmp(filename, argv[3]) == 0 ) { // file found, skip it and print the rest, then replace manifest
+      		while (c != '\n') read(manifest, &c, 1);
+      		status = read(manifest, &c, 1);
+      		while (status > 0) {
+      			writen(temp, &c, 1);
+      			status = read(manifest, &c, 1);
+      		}
+      		close(manifest);
+      		close(temp);
+      		remove(manifestPath);
+      		rename(tempPath, manifestPath);
+      		return;
+      	}
+      	// not found, print the line and continue to next line
+      	writen(temp, projectname, strlen(projectname));
+      	writen(temp, "/", 1);
+      	writen(temp, filename, strlen(filename));
+      	writen(temp, " ", 1);
+      	read(manifest, &c, 1);
+      	while (c != '\n') {
+      		writen(temp, &c, 1);
+      		read(manifest, &c, 1);
+      	}
+      	writen(temp, "\n", 1);
+      	status = read(manifest, &c, 1);
       }
       // finished reading manifest and file not found
       close(manifest);
