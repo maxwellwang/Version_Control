@@ -229,12 +229,10 @@ void push(packet * p, int socket ) {
       break;
     }
     code = tok[0];
-    tok = strtok(NULL, " \n");
-    //    if (code == 'D') { //add path to list
-    entries[i] = malloc(strlen(tok) + 1);
+    tok = strtok(NULL, " \n"); 
+gi   entries[i] = malloc(strlen(tok) + 1);
     memcpy(entries[i], tok, strlen(tok) +1);
     i++;
-    //    }
     tok = strtok(NULL, " \n");
     tok = strtok(NULL, " \n");
   }
