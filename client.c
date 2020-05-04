@@ -35,29 +35,20 @@ int c_connect() {
     printf("Error: Socket creation failed\n");
     exit(1);
   }
-  
+
+
+  char * hostbuffer = read_space(configfd);
+  int portno = atoi(read_space(configfd));
+  close(configfd);
+  struct hostent* result = gethostbyname(hostbuffer);
+  if (result == NULL) {
+    perror("Error");
+  }
   struct sockaddr_in serverAddress;
   bzero(&serverAddress, sizeof(serverAddress));
   serverAddress.sin_family = AF_INET;
-  //TODO: read ip and port from a file, and maybe even hostname? <--- doesn't work rn
-  char* hostbuffer = read_space(configfd);
-  char *IPbuffer; 
-  struct hostent *host_entry; 
-  int hostname; 
-  // To retrieve hostname 
-  hostname = gethostname(hostbuffer, sizeof(hostbuffer)); 
-  if (hostname == -1) {
-  	perror("Error");
-  	exit(1);
-  } 
-  // To retrieve host information 
-  host_entry = gethostbyname(hostbuffer);
-  // To convert an Internet network address into ASCII string 
-  IPbuffer = inet_ntoa(*((struct in_addr*) host_entry->h_addr_list[0]));
-  serverAddress.sin_addr.s_addr = inet_addr(IPbuffer);
-  int portno = atoi(read_space(configfd));
   serverAddress.sin_port = htons(portno);
-  close(configfd);
+  bcopy((char*)result->h_addr, (char*)&serverAddress.sin_addr.s_addr, result->h_length);
   while (connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress))) {
     printf("Connecting to server failed, attemping again in 3s\n");
     sleep(3);
