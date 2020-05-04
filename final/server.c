@@ -14,7 +14,7 @@
 #include <dirent.h>
 #include <pthread.h>
 #include "util.h"
-#define CONNECTION_QUEUE_SIZE 10
+#define CONNECTION_QUEUE_SIZE 4096
 #define DEBUG 0
 
 // global vars -> the files, sockets, pointers that exit function needs
@@ -304,7 +304,6 @@ void create(packet * p, int socket) {
   close(manifest);
   usleep(10000);
   writen2(socket, "61 t ", 0);
-  printf("Manifest path is: [%s]\n", manifestPath);
   send_file(socket, manifestPath); // send manifest to client
   system2("touch %s/.History", p->args[0]);  
   return;
@@ -368,10 +367,10 @@ int handle_request(packet * p, int socket) {
   //read in information according to protocol
   //lock and ensure project exists for all but create
   if (p->code != '6') {
-    lock(p->args[0]);
     if (!check_proj(p->args[0], socket)) {
       return;
     }
+    lock(p->args[0]);
   }
   switch (p->code) {
   case '0':
@@ -496,6 +495,7 @@ int main(int argc, char* argv[]) {
     int clientLength = sizeof(clientAddress);
     if ((new_socket = accept(sockfd, (struct sockaddr*) &clientAddress, &clientLength)) == -1) {
       printf("Error: Failed to accept new connection\n");
+      perror("Error");
       continue;
     }
     printf("Connection accepted from client\n");
