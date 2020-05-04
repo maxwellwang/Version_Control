@@ -100,7 +100,7 @@ void update(packet * p, int socket ) {
   }
   
   // good to go, send manifest to client
-  if (DEBUG) printf("about to send manifest\n");
+  //if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "11 i ", 0);
   send_file(socket, manifestPath);
   
@@ -154,11 +154,13 @@ void commit(packet * p, int socket ) {
   }
   
   // good to go, send manifest to client
-  if (DEBUG) printf("about to send manifest\n");
+  //if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "31 i ", 0);
   send_file(socket, manifestPath);
   packet * e = parse_request(socket);
-
+  if (strcmp(e->args[0], "n") == 0) {
+    return;
+  }
   if (strcmp(e->args[0], "z") == 0) { // manifest versions don't match, stop
   	return;
   }
@@ -228,20 +230,15 @@ void push(packet * p, int socket ) {
     }
     code = tok[0];
     tok = strtok(NULL, " \n");
-    if (code == 'D') { //add path to list
-      entries[i] = malloc(strlen(tok) + 1);
-      memcpy(entries[i], tok, strlen(tok));
-      i++;
-    }
+    entries[i] = malloc(strlen(tok) + 1);
+    memcpy(entries[i], tok, strlen(tok) +1);
+    i++;
     tok = strtok(NULL, " \n");
     tok = strtok(NULL, " \n");
   }
   //go through Manifest and write out entries not needed to be deleted
   //manifest version
-  int k;
-  for (; k < i; k++) {
-    printf("deleted: [%s]\n", entries[k]);
-  }
+  int k = 0;
   int j, flag;
   sprintf(manPath, "%s/.Manifest", p->args[0]);
   manifest = readFile(manPath);
@@ -318,7 +315,7 @@ void create(packet * p, int socket) {
   return;
 }
 void destroy(packet * p, int socket) {
-  system2("rm -r %s", p->args[0]);
+  system2("rm -rf %s", p->args[0]);
   writen2(socket, "71 t 0 ", 0);
   // should never be accessed again if code checks correctly
   return;
@@ -334,7 +331,7 @@ void currentversion(packet * p, int socket) {
   }
  
   // good to go, send manifest to client
-  if (DEBUG) printf("about to send manifest\n");
+  //if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "81 t ", 0);
   send_file(socket, manifestPath);
   return;
@@ -362,11 +359,12 @@ void rollback(packet * p, int socket) {
   sprintf(replacementDir, ".%dv%s", version, projectname);
   if (access(replacementDir, F_OK) != -1) {
     //restore it
+    system2("rm -rf %s", p->args[0]);
     system3("tar -xf .%sv%s", p->args[1], p->args[0]);
     system2("rm -rf %s/.*Commit", p->args[0]);
     //delete greater versions
     while (access(replacementDir, F_OK) != -1) {
-      system3("rm .%sv%s", p->args[1], p->args[0]);
+      system3("rm .%dv%s", version, p->args[0]);
       version++;
       sprintf(replacementDir, ".%dv%s", version, projectname);
     }
@@ -386,6 +384,7 @@ int handle_request(packet * p, int socket) {
       return;
     }
     lock(p->args[0]);
+    if (DEBUG) printf("locked %s\n", p->args[0]);
   }
   switch (p->code) {
   case '0':
@@ -444,20 +443,18 @@ void* myThreadFun(void* sockfd) {
 
 int main(int argc, char* argv[]) {
   atexit(exitFunction);
-  // setup mutexes for project paths
+  // setup mutexes for all dirs, will only use project dir mutexes
   mutexCounter = 0;
   DIR* dir = opendir(".");
   struct dirent* currentDir = readdir(dir);
   while (currentDir) {
     if (currentDir->d_type == DT_DIR) {
-      if (strncmp("._wtf_dir", currentDir->d_name, 8) != 0) {
-	if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
-	  printf("Mutex init has failed\n");
-	  return 1;
-	}
-	strcpy(projectnames[mutexCounter], currentDir->d_name);
-	mutexCounter++;
-      }
+		if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
+		  printf("Mutex init has failed\n");
+		  return 1;
+		}
+		strcpy(projectnames[mutexCounter], currentDir->d_name);
+		mutexCounter++;
     }
     currentDir = readdir(dir);
   }

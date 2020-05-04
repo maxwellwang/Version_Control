@@ -303,9 +303,12 @@ void commit(int argc, char* argv[]) {
   sprintf(path, "./%s/.Update", projectname);
   char path2[13 + strlen(projectname)];
   sprintf(path2, "./%s/.Conflict", projectname);
-  if(access(path, F_OK) != -1 && stat_record.st_size > 1) {
-    printf("Error: %s exists and is nonempty\n", path);
-    exit(1);
+  if(access(path, F_OK) != -1) {
+    char * update = readFile(path);
+    if (strlen(update) > 0) {
+      printf("Error: .Update exists and is nonempty\n");
+      exit(1);	  
+    }
   }
   if (access(path2, F_OK) != -1) {
     printf("Error: %s exists\n", path2);
@@ -412,6 +415,18 @@ void commit(int argc, char* argv[]) {
   close(commitFile);
   close(serverManifest);
   close(clientManifest);
+
+  char commitPath2[4096];
+  sprintf(commitPath2, "%s/.%sCommit", argv[2], id);
+  char * commit2 = readFile(commitPath2);
+  if (strlen(commit2) <= 0) {
+    printf("No changes detected\n");
+    system2("rm %s", commitPath2);
+    writen2(sockfd, "31 n 0 ", 0);
+    free(id);
+    close(sockfd);
+    return;
+  }
   // send .Commit to server and declare success
   writen2(sockfd, "32 d %s ", id);
   send_file(sockfd, commitPath);
@@ -653,6 +668,7 @@ void c_remove(int argc, char* argv[]) {
       		close(temp);
       		remove(manifestPath);
       		rename(tempPath, manifestPath);
+		printf("Successfully removed file\n");
       		return;
       	}
       	// not found, print the line and continue to next line
@@ -697,7 +713,10 @@ void currentversion(int argc, char* argv[]) {
   // manifest is in wtf
   int manifest = open ("./._wtf_dir/.Manifest", O_RDONLY);
   char c = '?';
-  while (c != '\n') read(manifest, &c, 1);
+  while (c != '\n') {
+    read(manifest, &c, 1);
+    printf("%c", c);	
+  }
   int status = read(manifest, &c, 1);
   while (status > 0) {
   	while (c != ' ') { // reads file path

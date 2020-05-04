@@ -207,10 +207,10 @@ int runAndCheck(char command[]) {
     close(clientManifest);
     return 1;
     break;
-  case 10: // currentversion
+  case 10: // currentversion, straightforward print
   	return 1;
     break;
-  case 11: // history
+  case 11: // history, straightforward print
     return 1;
     break;
   case 12: //rollback, check if server manifest is the requested version
@@ -262,6 +262,7 @@ int main() {
 		    } else {
 		    	printf("Command failed\n");
 		    	printf("Test %d failed\n", testCounter);
+		    	system("killall WTFserver 2>/dev/null");
 		    	return EXIT_FAILURE;
 		    }
 		 }
