@@ -204,7 +204,10 @@ void push(packet * p, int socket ) {
   //delete deleted files
   system2("cd %s && find . -type f -perm 704 -delete", p->args[0]);
   //update history TODO: add client ID to commit
-  system3("cd %s && cat .%sCommit >> .History", p->args[0], p2->args[0]);
+  char vers[16];
+  sprintf(vers, "%d\n", version);
+  system3("echo -n '%s' >> %s/.History", vers, p->args[0]);
+  system3("cd %s && sed 's/.................................$//' < .%sCommit >> .History", p->args[0], p2->args[0]);
   
   //update project/file versions, hashes, status codes
   //put entries to delete into list
@@ -355,7 +358,13 @@ void rollback(packet * p, int socket) {
   if (access(replacementDir, F_OK) != -1) {
     //restore it
     system3("tar -xf .%sv%s", p->args[1], p->args[0]);
-    system3("rm .%sv%s", p->args[1], p->args[0]);
+    system2("rm -rf %s/.*Commit", p->args[0]);
+    //delete greater versions
+    while (access(replacementDir, F_OK) != -1) {
+      system3("rm .%sv%s", p->args[1], p->args[0]);
+      version++;
+      sprintf(replacementDir, ".%dv%s", version, projectname);
+    }
     writen2(socket, "a1 t 0 ", 0);
   } else {
     writen2(socket, "a1 v 0 ", 0);
