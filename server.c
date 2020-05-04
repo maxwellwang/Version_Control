@@ -315,7 +315,7 @@ void create(packet * p, int socket) {
   return;
 }
 void destroy(packet * p, int socket) {
-  system2("rm -r %s", p->args[0]);
+  system2("rm -rf %s", p->args[0]);
   writen2(socket, "71 t 0 ", 0);
   // should never be accessed again if code checks correctly
   return;
