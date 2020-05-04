@@ -262,6 +262,7 @@ int main() {
 		    } else {
 		    	printf("Command failed\n");
 		    	printf("Test %d failed\n", testCounter);
+		    	system("killall WTFserver 2>/dev/null");
 		    	return EXIT_FAILURE;
 		    }
 		 }
