@@ -100,7 +100,7 @@ void update(packet * p, int socket ) {
   }
   
   // good to go, send manifest to client
-  if (DEBUG) printf("about to send manifest\n");
+  //if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "11 i ", 0);
   send_file(socket, manifestPath);
   
@@ -154,7 +154,7 @@ void commit(packet * p, int socket ) {
   }
   
   // good to go, send manifest to client
-  if (DEBUG) printf("about to send manifest\n");
+  //if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "31 i ", 0);
   send_file(socket, manifestPath);
   packet * e = parse_request(socket);
@@ -334,7 +334,7 @@ void currentversion(packet * p, int socket) {
   }
  
   // good to go, send manifest to client
-  if (DEBUG) printf("about to send manifest\n");
+  //if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "81 t ", 0);
   send_file(socket, manifestPath);
   return;
@@ -386,6 +386,7 @@ int handle_request(packet * p, int socket) {
       return;
     }
     lock(p->args[0]);
+    if (DEBUG) printf("locked %s\n", p->args[0]);
   }
   switch (p->code) {
   case '0':
@@ -444,20 +445,18 @@ void* myThreadFun(void* sockfd) {
 
 int main(int argc, char* argv[]) {
   atexit(exitFunction);
-  // setup mutexes for project paths
+  // setup mutexes for all dirs, will only use project dir mutexes
   mutexCounter = 0;
   DIR* dir = opendir(".");
   struct dirent* currentDir = readdir(dir);
   while (currentDir) {
     if (currentDir->d_type == DT_DIR) {
-      if (strncmp("._wtf_dir", currentDir->d_name, 8) != 0) {
-	if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
-	  printf("Mutex init has failed\n");
-	  return 1;
-	}
-	strcpy(projectnames[mutexCounter], currentDir->d_name);
-	mutexCounter++;
-      }
+		if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
+		  printf("Mutex init has failed\n");
+		  return 1;
+		}
+		strcpy(projectnames[mutexCounter], currentDir->d_name);
+		mutexCounter++;
     }
     currentDir = readdir(dir);
   }

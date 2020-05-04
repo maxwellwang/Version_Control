@@ -20,3 +20,18 @@ Expected: Client myproject .Update file is blank and program prints "Up To Date"
 Test 7
 $ ./WTF upgrade myproject
 Expected: Should do nothing since .Update is empty.
+Test 8
+$ ./WTF currentversion myproject
+Expected: Should print out myfile and its version.
+Test 9
+$ ./WTF history myproject
+Expected: Should print out the committed add file myfile that was pushed.
+Test 10
+$ rm -rf myproject; ./WTF rollback myproject 0
+Expected: Should roll server myproject back to version 0, where there is no myfile in it.
+Test 11
+$ ./WTF checkout myproject
+Expected: Should checkout myproject dir into the clientside, and it should not have myfile in it since it is version 0 of the project.
+Test 12
+$ ./WTF destroy myproject
+Expected: Should destroy myproject on the serverside so that the directory no longer exists there.

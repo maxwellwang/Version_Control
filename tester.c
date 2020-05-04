@@ -207,10 +207,10 @@ int runAndCheck(char command[]) {
     close(clientManifest);
     return 1;
     break;
-  case 10: // currentversion
+  case 10: // currentversion, straightforward print
   	return 1;
     break;
-  case 11: // history
+  case 11: // history, straightforward print
     return 1;
     break;
   case 12: //rollback, check if server manifest is the requested version
