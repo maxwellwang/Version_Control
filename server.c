@@ -220,25 +220,30 @@ void push(packet * p, int socket ) {
   char code;
   int first = 1;
   int i = 0;
+  printf("db1\n");
   while (1) {
     tok = strtok(first == 1 ? commit : NULL, " \n");
     first = 0;
     if (tok == NULL) {
       break;
     }
+    printf("db2 [%c]\n", tok[0]);
     code = tok[0];
     tok = strtok(NULL, " \n");
     if (code == 'D') { //add path to list
+      printf("db3\n");
       entries[i] = malloc(strlen(tok) + 1);
-      memcpy(entries[i], tok, strlen(tok));
+      memcpy(entries[i], tok, strlen(tok) +1);
       i++;
     }
+    printf("db4\n");
     tok = strtok(NULL, " \n");
     tok = strtok(NULL, " \n");
+    printf("db5\n");
   }
   //go through Manifest and write out entries not needed to be deleted
   //manifest version
-  int k;
+  int k = 0;
   for (; k < i; k++) {
     printf("deleted: [%s]\n", entries[k]);
   }
