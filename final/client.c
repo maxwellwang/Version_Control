@@ -425,20 +425,30 @@ void commit(int argc, char* argv[]) {
 
 void push(int argc, char* argv[]) {
   check_args(argc, 3);
+  char* projectname = parse_dir(argv[2]);
+  // fail if project does not exist
+  DIR* dir = opendir(projectname);
+  if (!dir) {
+    closedir(dir);
+    printf("Error: %s project does not exist on client\n", projectname);
+    exit(1);
+  }
+  
+  closedir(dir);
   char commitPath[4096];
   char * id = readFile(".id");
   sprintf(commitPath, "%s/.%sCommit", argv[2], id);
-  //create and send tar w/ the files
+  if(access(commitPath, F_OK) == -1) {
+    printf("Error: no commits found\n");
+    return;
+  }
   char * commit = readFile(commitPath);
   if (strlen(commit) <= 0) {
     printf("Error: nothing to commit!\n");
     return;
   }
   
-  if(access(commitPath, F_OK) == -1) {
-    printf("Error: no commits found\n");
-    return;
-  }
+  //create and send tar w/ the files
   int sock = c_connect();
   char buf[4096];
   sprintf(buf, "52 %s %s ", argv[2], id);

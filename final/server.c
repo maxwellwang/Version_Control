@@ -277,6 +277,7 @@ void push(packet * p, int socket ) {
   
   //send back manifest
   writen2(socket, "51 t ", 0);
+  sprintf(manPath, "%s/.Manifest", p->args[0]);
   send_file(socket, manPath);
 
   free(manifest);
