@@ -191,7 +191,7 @@ void push(packet * p, int socket ) {
   char manPath[4096];
   sprintf(manPath, "%s/.Manifest", p->args[0]);
   char * manifest = readFile(manPath);
-  int version = atoi(strtok(manifest, " "));
+  int version = atoi(strtok(manifest, " \n"));
   sprintf(manPath, ".%dv%s", version, p->args[0]);
   //move to backup dir. if push ultimately fails, restore it
   system3("tar -zcf %s %s", manPath, p->args[0]);
@@ -241,9 +241,15 @@ void push(packet * p, int socket ) {
   //manifest version
   
   int j, flag;
-  int ver = atoi(strtok(manifest, "\n"));
-  system3("echo '%d' >> %s/.Manifest2", ++ver, p->args[0]);
+  sprintf(manPath, "%s/.Manifest", p->args[0]);
+  manifest = readFile(manPath);
+  printf("Man: [%s]\n", manifest);
+  version = atoi(strtok(manifest, " \n"));
+  version++;
+  system3("echo '%d' >> %s/.Manifest2", version, p->args[0]);
+  printf("Debug1\n");
   while (1) {
+    printf("Debug2\n");
     tok = strtok(NULL, " \n"); //file path
     path2 = tok;
     if (tok == NULL) {
@@ -253,6 +259,7 @@ void push(packet * p, int socket ) {
     tok = strtok(NULL, " \n"); //file version
     flag = 0;
     //if it is in deleted list, skip it
+    printf("Debug3\n");
     for (j = 0; j < i; j++) {
       if (strcmp(entries[j], path2) == 0) {
 	strtok(NULL, " \n");
@@ -260,6 +267,7 @@ void push(packet * p, int socket ) {
       }
     }
     //not in list, write out the regular info
+    printf("Debug3.5 [%d][%s]\n", version, tok);
     if (flag == 0) {
       system3("echo -n '%s ' >> %s/.Manifest2 ", path2, p->args[0]);
       version = atoi(tok);
@@ -267,7 +275,9 @@ void push(packet * p, int socket ) {
       tok = strtok(NULL, " \n"); // file hash
       system3("echo '%s' >> %s/.Manifest2 ", tok, p->args[0]);
     }
+    printf("Debug4\n");
   }
+  printf("Debug5\n");
   //append deleted (add or modify) entries
   system3("cd %s && sed '/^D/ d' < .%sCommit > .Commit2", p->args[0], p2->args[0]);
   system3("sed 's/^..//' %s/.Commit2 >> %s/.Manifest2", p->args[0], p->args[0]);
