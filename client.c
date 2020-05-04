@@ -39,14 +39,17 @@ int c_connect() {
   struct sockaddr_in serverAddress;
   bzero(&serverAddress, sizeof(serverAddress));
   serverAddress.sin_family = AF_INET;
-  //TODO: read ip and port from a file, and maybe even hostname?
-  char* buffer = read_space(configfd);
-  char hostbuffer[256]; 
+  //TODO: read ip and port from a file, and maybe even hostname? <--- doesn't work rn
+  char* hostbuffer = read_space(configfd);
   char *IPbuffer; 
   struct hostent *host_entry; 
   int hostname; 
   // To retrieve hostname 
-  hostname = gethostname(hostbuffer, sizeof(hostbuffer));  
+  hostname = gethostname(hostbuffer, sizeof(hostbuffer)); 
+  if (hostname == -1) {
+  	perror("Error");
+  	exit(1);
+  } 
   // To retrieve host information 
   host_entry = gethostbyname(hostbuffer);
   // To convert an Internet network address into ASCII string 
