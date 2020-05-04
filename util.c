@@ -608,7 +608,7 @@ void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile
     }
     if (!fileInManifest(clientManifestPath, tempFilePath)) { // delete code detected 
       memset(commitMessage, 0, 4096);
-      sprintf(commitMessage, "D %s %d %s", tempFilePath, versionNo + 1, serverHash);
+      sprintf(commitMessage, "D %s %d %s\n", tempFilePath, versionNo + 1, serverHash);
       writen(commitFile, commitMessage, strlen(commitMessage));
       printf("D %s\n", tempFilePath);
     }
