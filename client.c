@@ -714,10 +714,9 @@ void currentversion(int argc, char* argv[]) {
   int manifest = open ("./._wtf_dir/.Manifest", O_RDONLY);
   char c = '?';
   while (c != '\n') {
-    printf("%c", c);
     read(manifest, &c, 1);
+    printf("%c", c);	
   }
-  printf("\n");
   int status = read(manifest, &c, 1);
   while (status > 0) {
   	while (c != ' ') { // reads file path

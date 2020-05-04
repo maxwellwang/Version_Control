@@ -364,7 +364,7 @@ void rollback(packet * p, int socket) {
     system2("rm -rf %s/.*Commit", p->args[0]);
     //delete greater versions
     while (access(replacementDir, F_OK) != -1) {
-      system3("rm .%sv%s", version, p->args[0]);
+      system3("rm .%dv%s", version, p->args[0]);
       version++;
       sprintf(replacementDir, ".%dv%s", version, projectname);
     }
