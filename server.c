@@ -361,6 +361,7 @@ void rollback(packet * p, int socket) {
   sprintf(replacementDir, ".%dv%s", version, projectname);
   if (access(replacementDir, F_OK) != -1) {
     //restore it
+    system2("rm -rf %s", p->args[0]);
     system3("tar -xf .%sv%s", p->args[1], p->args[0]);
     system2("rm -rf %s/.*Commit", p->args[0]);
     //delete greater versions
