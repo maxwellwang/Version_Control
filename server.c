@@ -158,7 +158,9 @@ void commit(packet * p, int socket ) {
   writen2(socket, "31 i ", 0);
   send_file(socket, manifestPath);
   packet * e = parse_request(socket);
-
+  if (strcmp(e->args[0], "n") == 0) {
+    return;
+  }
   if (strcmp(e->args[0], "z") == 0) { // manifest versions don't match, stop
   	return;
   }
