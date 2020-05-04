@@ -5,33 +5,33 @@ Test 2
 $ ./WTF create myproject
 Expected: Created myproject dir in both client and server repositories, with manifests containing "0".
 Test 3
+$ ./WTF destroy myproject; rm -rf myproject; ./WTF create myproject
+Expected: Should destroy myproject on the serverside so that the directory no longer exists there. Then we create it again.
+Test 4
 $ echo "text" > myproject/myfile; ./WTF add myproject myfile
 Expected: Added myproject/myfile line to client manifest, with version number 0 and generated hash.
-Test 4
+Test 5
 $ ./WTF commit myproject
 Expected: Created .Commit file noting that a myfile should be added to the server's myproject when push occurs.
-Test 5
+Test 6
 $ ./WTF push myproject
 Expected: Server myproject manifest should have myfile and myfile should be in server project. Also, client myproject should match
 server myproject.
-Test 6
+Test 7
 $ ./WTF update myproject
 Expected: Client myproject .Update file is blank and program prints "Up To Date".
-Test 7
+Test 8
 $ ./WTF upgrade myproject
 Expected: Should do nothing since .Update is empty.
-Test 8
+Test 9
 $ ./WTF currentversion myproject
 Expected: Should print out myfile and its version.
-Test 9
+Test 10
 $ ./WTF history myproject
 Expected: Should print out the committed add file myfile that was pushed.
-Test 10
+Test 11
 $ rm -rf myproject; ./WTF rollback myproject 0
 Expected: Should roll server myproject back to version 0, where there is no myfile in it.
-Test 11
+Test 12
 $ ./WTF checkout myproject
 Expected: Should checkout myproject dir into the clientside, and it should not have myfile in it since it is version 0 of the project.
-Test 12
-$ ./WTF destroy myproject
-Expected: Should destroy myproject on the serverside so that the directory no longer exists there.
