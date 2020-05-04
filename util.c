@@ -201,7 +201,7 @@ void zip_add2(char * path) {
 void send_proj(int sockfd, char * proj) {
   char buf[4096];
   system2("tar -zcf ._wtf_tar %s", proj);
-  sprintf(buf, "01 t %d ", 5, zip_size());
+  sprintf(buf, "01 t %d ", zip_size());
   writen(sockfd, buf, strlen(buf));
   int tarfd = open("./._wtf_tar", O_RDONLY);
   f2f(tarfd, sockfd, zip_size());

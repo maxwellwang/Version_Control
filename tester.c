@@ -77,9 +77,10 @@ int runAndCheck(char command[]) {
   char clientCommitPath[4096];
   char serverFilePath[4096];
   char updatePath[4096], conflictPath[4096];
-  char version[4096];
-  int clientManifest, bytes, status, serverManifest;
+  char version[4096], version2[4096], clientID[4096];
+  int clientManifest, bytes, status, serverManifest, idFile;
   char c = '?';
+  char idPath[] = "./clientDir/.id";
   switch (code) {
   case 0: // configure, check if .configure file was made
     if (access("./clientDir/.configure", F_OK) != -1) {
@@ -98,20 +99,62 @@ int runAndCheck(char command[]) {
     sprintf(conflictPath, "./clientDir/%s/.Conflict", argv[2]);
     if (access(updatePath, F_OK) != -1 || access(conflictPath, F_OK) != -1) return 1;
     break;
-  case 3: // upgrade
-  	break;
+  case 3: // upgrade, check if manifest versions match
+  	sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
+  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    clientManifest = open(clientManifestPath, O_RDONLY);
+    serverManifest = open(serverManifestPath, O_RDONLY);
+    // read versions from client and server
+    bytes = 0;
+    read(clientManifest, &c, 1);
+    while (c != '\n') {
+    	version[bytes++] = c;
+    	read(clientManifest, &c, 1);
+    }
+    bytes = 0;
+    read(serverManifest, &c, 1);
+    while (c != '\n') {
+    	version[bytes++] = c;
+    	read(serverManifest, &c, 1);
+    }
+    close(clientManifest);
+    close(serverManifest);
+    if ( strcmp(version, version2) == 0 ) return 1;
+    break;
   case 4:
-    //commit isn't named that simply anymore
-    return 1;
-  	sprintf(serverCommitPath, "./serverDir/%s/.Commit", argv[2]);
-  	sprintf(clientCommitPath, "./clientDir/%s/.Commit", argv[2]);
+    idFile = open(idPath, O_RDONLY);
+    status = read(idFile, &c, 1);
+    bytes = 0;
+    while (status > 0) {
+    	clientID[bytes++] = c;
+    	status = read(idFile, &c, 1);
+    }
+    close(idFile);
+  	sprintf(serverCommitPath, "./serverDir/%s/.%sCommit", argv[2], clientID);
+  	sprintf(clientCommitPath, "./clientDir/%s/.%sCommit", argv[2], clientID);
     if (access(clientCommitPath, F_OK) != -1 && access(serverCommitPath, F_OK) != -1) return 1;
     break;
-  case 5: // push
-    sprintf(serverFilePath, "./serverDir/%s/myfile", argv[2]);
-    if (access(serverFilePath, F_OK) != -1) {
-      return 1;
+  case 5: // push, check if manifest versions match
+    sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
+  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    clientManifest = open(clientManifestPath, O_RDONLY);
+    serverManifest = open(serverManifestPath, O_RDONLY);
+    // read versions from client and server
+    bytes = 0;
+    read(clientManifest, &c, 1);
+    while (c != '\n') {
+    	version[bytes++] = c;
+    	read(clientManifest, &c, 1);
     }
+    bytes = 0;
+    read(serverManifest, &c, 1);
+    while (c != '\n') {
+    	version2[bytes++] = c;
+    	read(serverManifest, &c, 1);
+    }
+    close(clientManifest);
+    close(serverManifest);
+    if ( strcmp(version, version2) == 0 ) return 1;
     break;
   case 6: // create, check if client and server have the dir with .Manifest in it
     sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
@@ -188,6 +231,7 @@ int runAndCheck(char command[]) {
 }
 
 int main() {
+  system("killall WTFserver 2>/dev/null");
   int testCounter = 1;
   int file = open("testcases.txt", O_RDONLY);
   char c = '?';
@@ -227,7 +271,7 @@ int main() {
     status = read(file, &c, 1);
   }
   close(file);
-  system("killall WTFserver");
+  system("killall WTFserver 2>/dev/null");
   printf("ALL TESTS PASSED\n");
   return EXIT_SUCCESS;
 }
