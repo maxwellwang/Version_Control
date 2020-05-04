@@ -653,6 +653,7 @@ void c_remove(int argc, char* argv[]) {
       		close(temp);
       		remove(manifestPath);
       		rename(tempPath, manifestPath);
+		printf("Successfully removed file\n");
       		return;
       	}
       	// not found, print the line and continue to next line

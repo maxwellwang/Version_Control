@@ -220,33 +220,25 @@ void push(packet * p, int socket ) {
   char code;
   int first = 1;
   int i = 0;
-  printf("db1\n");
   while (1) {
     tok = strtok(first == 1 ? commit : NULL, " \n");
     first = 0;
     if (tok == NULL) {
       break;
     }
-    printf("db2 [%c]\n", tok[0]);
     code = tok[0];
     tok = strtok(NULL, " \n");
     if (code == 'D') { //add path to list
-      printf("db3\n");
       entries[i] = malloc(strlen(tok) + 1);
       memcpy(entries[i], tok, strlen(tok) +1);
       i++;
     }
-    printf("db4\n");
     tok = strtok(NULL, " \n");
     tok = strtok(NULL, " \n");
-    printf("db5\n");
   }
   //go through Manifest and write out entries not needed to be deleted
   //manifest version
   int k = 0;
-  for (; k < i; k++) {
-    printf("deleted: [%s]\n", entries[k]);
-  }
   int j, flag;
   sprintf(manPath, "%s/.Manifest", p->args[0]);
   manifest = readFile(manPath);
@@ -371,7 +363,7 @@ void rollback(packet * p, int socket) {
     system2("rm -rf %s/.*Commit", p->args[0]);
     //delete greater versions
     while (access(replacementDir, F_OK) != -1) {
-      system3("rm .%sv%s", p->args[1], p->args[0]);
+      system3("rm .%sv%s", version, p->args[0]);
       version++;
       sprintf(replacementDir, ".%dv%s", version, projectname);
     }
