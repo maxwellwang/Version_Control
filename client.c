@@ -610,8 +610,7 @@ void c_remove(int argc, char* argv[]) {
   sprintf(tempPath, "./%s/.temp", projectname);
   char filePath[4 + strlen(projectname) + strlen(argv[3])];
   sprintf(filePath, "./%s/%s", projectname, argv[3]);
-  if (opendir(projectname)) { // dir exists, add to manifest if file isn't there yet
-    if (access(filePath, F_OK) != -1) { // file exists, try to remove from manifest
+  if (opendir(projectname)) { // dir exists
       int manifest = open(manifestPath, O_RDONLY);
       int temp = open(tempPath, O_WRONLY | O_CREAT, 00600); // create temp to write everything except deleted line
       if (manifest == -1) {
@@ -675,10 +674,6 @@ void c_remove(int argc, char* argv[]) {
       remove(tempPath);
       printf("Error: %s is not in manifest\n", filePath);
       return;
-    } else { // file does not exist (this also checks if project exists), command fails
-      printf("Error: %s does not exist\n", filePath);
-      return;
-    }
   } else if (errno == ENOENT) { // dir does not exit, command fails
     printf("Error: %s project does not exist on client\n", projectname);
     return;
