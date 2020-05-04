@@ -158,7 +158,9 @@ void commit(packet * p, int socket ) {
   writen2(socket, "31 i ", 0);
   send_file(socket, manifestPath);
   packet * e = parse_request(socket);
-
+  if (strcmp(e->args[0], "n") == 0) {
+    return;
+  }
   if (strcmp(e->args[0], "z") == 0) { // manifest versions don't match, stop
   	return;
   }
@@ -230,7 +232,7 @@ void push(packet * p, int socket ) {
     tok = strtok(NULL, " \n");
     if (code == 'D') { //add path to list
       entries[i] = malloc(strlen(tok) + 1);
-      memcpy(entries[i], tok, strlen(tok));
+      memcpy(entries[i], tok, strlen(tok) +1);
       i++;
     }
     tok = strtok(NULL, " \n");
@@ -238,10 +240,7 @@ void push(packet * p, int socket ) {
   }
   //go through Manifest and write out entries not needed to be deleted
   //manifest version
-  int k;
-  for (; k < i; k++) {
-    printf("deleted: [%s]\n", entries[k]);
-  }
+  int k = 0;
   int j, flag;
   sprintf(manPath, "%s/.Manifest", p->args[0]);
   manifest = readFile(manPath);
@@ -362,11 +361,12 @@ void rollback(packet * p, int socket) {
   sprintf(replacementDir, ".%dv%s", version, projectname);
   if (access(replacementDir, F_OK) != -1) {
     //restore it
+    system2("rm -rf %s", p->args[0]);
     system3("tar -xf .%sv%s", p->args[1], p->args[0]);
     system2("rm -rf %s/.*Commit", p->args[0]);
     //delete greater versions
     while (access(replacementDir, F_OK) != -1) {
-      system3("rm .%sv%s", p->args[1], p->args[0]);
+      system3("rm .%sv%s", version, p->args[0]);
       version++;
       sprintf(replacementDir, ".%dv%s", version, projectname);
     }
