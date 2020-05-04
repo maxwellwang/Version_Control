@@ -42,7 +42,8 @@ int c_connect() {
   close(configfd);
   struct hostent* result = gethostbyname(hostbuffer);
   if (result == NULL) {
-    perror("Error");
+    herror("Error");
+    exit(1);
   }
   struct sockaddr_in serverAddress;
   bzero(&serverAddress, sizeof(serverAddress));

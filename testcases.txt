@@ -1,5 +1,5 @@
 Test 1
-$ ./WTF configure 127.0.0.1 8080
+$ ./WTF configure frost.cs.rutgers.educ 8080
 Expected: Created .configure file containing the inputted hostname and port number.
 Test 2
 $ ./WTF create myproject
