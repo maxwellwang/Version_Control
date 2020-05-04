@@ -14,7 +14,7 @@
 #include <dirent.h>
 #include <pthread.h>
 #include "util.h"
-#define CONNECTION_QUEUE_SIZE 10
+#define CONNECTION_QUEUE_SIZE 4096
 #define DEBUG 0
 
 // global vars -> the files, sockets, pointers that exit function needs
@@ -204,7 +204,10 @@ void push(packet * p, int socket ) {
   //delete deleted files
   system2("cd %s && find . -type f -perm 704 -delete", p->args[0]);
   //update history TODO: add client ID to commit
-  system3("cd %s && cat .%sCommit >> .History", p->args[0], p2->args[0]);
+  char vers[16];
+  sprintf(vers, "%d\n", version);
+  system3("echo -n '%s' >> %s/.History", vers, p->args[0]);
+  system3("cd %s && sed 's/.................................$//' < .%sCommit >> .History", p->args[0], p2->args[0]);
   
   //update project/file versions, hashes, status codes
   //put entries to delete into list
@@ -277,6 +280,7 @@ void push(packet * p, int socket ) {
   
   //send back manifest
   writen2(socket, "51 t ", 0);
+  sprintf(manPath, "%s/.Manifest", p->args[0]);
   send_file(socket, manPath);
 
   free(manifest);
@@ -304,7 +308,6 @@ void create(packet * p, int socket) {
   close(manifest);
   usleep(10000);
   writen2(socket, "61 t ", 0);
-  printf("Manifest path is: [%s]\n", manifestPath);
   send_file(socket, manifestPath); // send manifest to client
   system2("touch %s/.History", p->args[0]);  
   return;
@@ -355,7 +358,13 @@ void rollback(packet * p, int socket) {
   if (access(replacementDir, F_OK) != -1) {
     //restore it
     system3("tar -xf .%sv%s", p->args[1], p->args[0]);
-    system3("rm .%sv%s", p->args[1], p->args[0]);
+    system2("rm -rf %s/.*Commit", p->args[0]);
+    //delete greater versions
+    while (access(replacementDir, F_OK) != -1) {
+      system3("rm .%sv%s", p->args[1], p->args[0]);
+      version++;
+      sprintf(replacementDir, ".%dv%s", version, projectname);
+    }
     writen2(socket, "a1 t 0 ", 0);
   } else {
     writen2(socket, "a1 v 0 ", 0);
@@ -368,10 +377,10 @@ int handle_request(packet * p, int socket) {
   //read in information according to protocol
   //lock and ensure project exists for all but create
   if (p->code != '6') {
-    lock(p->args[0]);
     if (!check_proj(p->args[0], socket)) {
       return;
     }
+    lock(p->args[0]);
   }
   switch (p->code) {
   case '0':
@@ -496,6 +505,7 @@ int main(int argc, char* argv[]) {
     int clientLength = sizeof(clientAddress);
     if ((new_socket = accept(sockfd, (struct sockaddr*) &clientAddress, &clientLength)) == -1) {
       printf("Error: Failed to accept new connection\n");
+      perror("Error");
       continue;
     }
     printf("Connection accepted from client\n");
