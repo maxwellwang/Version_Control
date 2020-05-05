@@ -55,7 +55,7 @@ int c_connect() {
   int status = connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
   while (status) {
   	if (status < 0) {
-  		//close(sockfd);
+  		close(sockfd);
   		perror("Error");
   		exit(1);
   	}
