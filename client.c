@@ -32,6 +32,7 @@ int c_connect() {
   }
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd == -1) {
+  	close(configfd);
     printf("Error: Socket creation failed\n");
     exit(1);
   }
@@ -43,6 +44,7 @@ int c_connect() {
   struct hostent* result = gethostbyname(hostbuffer);
   if (result == NULL) {
     herror("Error");
+    close(configfd);
     exit(1);
   }
   struct sockaddr_in serverAddress;
@@ -55,6 +57,7 @@ int c_connect() {
     sleep(3);
   }
   printf("Connected to server\n");
+  close(configfd);
   return sockfd;
 }
 
@@ -96,7 +99,6 @@ void update(int argc, char* argv[]) {
   // fail if project does not exist
   DIR* dir = opendir(projectname);
   if (!dir) {
-    closedir(dir);
     printf("Error: %s project does not exist on client\n", projectname);
     exit(1);
   }
@@ -138,6 +140,7 @@ void update(int argc, char* argv[]) {
     printf("Up To Date\n");
     close(serverManifest);
     close(clientManifest);
+    close(conflictFile);
     remove("./._wtf_dir/.Manifest");
     return;
   }
@@ -242,6 +245,7 @@ void update(int argc, char* argv[]) {
   close(serverManifest);
   close(clientManifest);
   if (conflictDetected) { // delete .Update, print message
+    close(updateFile);
     remove(updatePath);
     close(conflictFile);
     printf("You must resolve conflicts before you can update\n");
@@ -289,7 +293,6 @@ void commit(int argc, char* argv[]) {
   // fail if project does not exist
   DIR* dir = opendir(projectname);
   if (!dir) {
-    closedir(dir);
     printf("Error: %s project does not exist on client\n", projectname);
     exit(1);
   }
@@ -441,7 +444,6 @@ void push(int argc, char* argv[]) {
   // fail if project does not exist
   DIR* dir = opendir(projectname);
   if (!dir) {
-    closedir(dir);
     printf("Error: %s project does not exist on client\n", projectname);
     exit(1);
   }
@@ -521,7 +523,9 @@ void push(int argc, char* argv[]) {
 void create(int argc, char* argv[]) {
   check_args(argc, 3);
   char* projectname = parse_dir(argv[2]);
-  if (opendir(projectname) != NULL) {
+  DIR* dir = opendir(projectname);
+  if (dir) {
+  	closedir(dir);
     printf("Error: %s project already exists on client\n", argv[2]);
     return;
   }
@@ -558,7 +562,9 @@ void add(int argc, char* argv[]) {
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   char filePath[4 + strlen(projectname) + strlen(argv[3])];
   sprintf(filePath, "./%s/%s", projectname, argv[3]);
-  if (opendir(projectname)) { // dir exists, add to manifest if file isn't there yet
+  DIR* dir = opendir(projectname);
+  if (dir) { // dir exists, add to manifest if file isn't there yet
+  	closedir(dir);
     if (access(filePath, F_OK) != -1) { // file exists, try to add to manifest
       int manifest = open(manifestPath, O_RDWR | O_APPEND);
       if (manifest == -1) {
@@ -622,7 +628,9 @@ void c_remove(int argc, char* argv[]) {
   sprintf(tempPath, "./%s/.temp", projectname);
   char filePath[4 + strlen(projectname) + strlen(argv[3])];
   sprintf(filePath, "./%s/%s", projectname, argv[3]);
-  if (opendir(projectname)) { // dir exists
+  DIR* dir = opendir(projectname);
+  if (dir) { // dir exists
+  		closedir(dir);
       int manifest = open(manifestPath, O_RDONLY);
       int temp = open(tempPath, O_WRONLY | O_CREAT, 00600); // create temp to write everything except deleted line
       if (manifest == -1) {
@@ -630,6 +638,7 @@ void c_remove(int argc, char* argv[]) {
 	return;
       }
       if (temp == -1) {
+      close(manifest);
 	printf("Error: Failed to create %s\n", tempPath);
 	return;
       }
