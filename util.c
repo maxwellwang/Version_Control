@@ -491,7 +491,7 @@ int fileInManifest(char manifestPath[], char filePath[]) {
   return 0;
 }
 
-int checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile) {
+int checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile, char liveHash[]) {
   int serverManifest = open(serverManifestPath, O_RDONLY);
   char c = '?', code = '?';
   char tempFilePath[4096];
@@ -554,7 +554,11 @@ int checkMA(char serverManifestPath[], char filePath[], int versionNo, char mani
     return 0;
   }
   char commitWrite[4096];
-  sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, manifestHash);
+  if (code == 'A') {
+  	sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, manifestHash);
+  } else {
+  	sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, liveHash);
+  }
   writen(commitFile, commitWrite, strlen(commitWrite));
   printf("%c %s\n", code, filePath);
   close(serverManifest);

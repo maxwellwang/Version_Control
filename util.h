@@ -77,7 +77,7 @@ int getServerFileVersion(char serverManifestPath[], char inputPath[]);
 
 int fileInManifest(char manifestPath[], char filePath[]);
 
-int checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile);
+int checkMA(char serverManifestPath[], char filePath[], int versionNo, char manifestHash[], int sameHash, int commitFile, char liveHash[]);
   
 void checkD(char serverManifestPath[], char clientManifestPath[], int commitFile);
 #endif

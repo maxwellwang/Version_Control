@@ -6,7 +6,7 @@ util.o: util.c
 	gcc -c util.c
 
 test: clean all tester.c
-	gcc -g -o "WTFtest" tester.c
+	gcc -o "WTFtest" tester.c
 	mkdir clientDir
 	mkdir serverDir
 	mv WTF clientDir

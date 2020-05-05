@@ -392,7 +392,7 @@ void commit(int argc, char* argv[]) {
     }
     sameHash = (strcmp(hashcode, manifestHash) == 0);
     // decide modify, add, or nothing
-    sa = checkMA("./._wtf_dir/.Manifest", filePath, versionNo, manifestHash, sameHash, commitFile);
+    sa = checkMA("./._wtf_dir/.Manifest", filePath, versionNo, manifestHash, sameHash, commitFile, hashcode);
     if (sa == -1) { // not synced before commit, delete .Commit
       close(commitFile);
       close(serverManifest);
