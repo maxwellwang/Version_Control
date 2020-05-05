@@ -43,8 +43,8 @@ int c_connect() {
   close(configfd);
   struct hostent* result = gethostbyname(hostbuffer);
   if (result == NULL) {
+  	close(sockfd);
     herror("Error");
-    close(configfd);
     exit(1);
   }
   struct sockaddr_in serverAddress;
@@ -52,12 +52,18 @@ int c_connect() {
   serverAddress.sin_family = AF_INET;
   serverAddress.sin_port = htons(portno);
   bcopy((char*)result->h_addr, (char*)&serverAddress.sin_addr.s_addr, result->h_length);
-  while (connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress))) {
+  int status = connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
+  while (status) {
+  	if (status < 0) {
+  		//close(sockfd);
+  		perror("Error");
+  		exit(1);
+  	}
     printf("Connecting to server failed, attemping again in 3s\n");
     sleep(3);
+    status = connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
   }
   printf("Connected to server\n");
-  close(configfd);
   return sockfd;
 }
 
@@ -318,9 +324,7 @@ void commit(int argc, char* argv[]) {
   // fetch server project's .Manifest
   int sockfd = c_connect();
   writen2(sockfd, "31 %s 0 ", projectname);
-  //if (DEBUG) printf("sent request for server manifest\n");
   handle_response(sockfd);
-  //if (DEBUG) printf("got server manifest\n");
 
   // manifest fetched successfully, now compare to determine case
   int serverManifest = open("./._wtf_dir/.Manifest", O_RDONLY);
@@ -532,7 +536,6 @@ void create(int argc, char* argv[]) {
   
   int sockfd = c_connect();
   writen2(sockfd, "61 %s 0 ", projectname);
-
   handle_response(sockfd);
   if (mkdir(projectname, 0700) == -1) {
     printf("Error: could not create project %s\n", argv[2]);
@@ -557,7 +560,6 @@ void add(int argc, char* argv[]) {
   check_args(argc, 4);
   // argv[2] project name get rid of / if there is one
   char* projectname = parse_dir(argv[2]);
-  //if (DEBUG) printf("projectname: %s\n", projectname);
   char manifestPath[13 + strlen(projectname)];
   sprintf(manifestPath, "./%s/.Manifest", projectname);
   char filePath[4 + strlen(projectname) + strlen(argv[3])];

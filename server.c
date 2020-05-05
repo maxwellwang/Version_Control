@@ -100,7 +100,6 @@ void update(packet * p, int socket ) {
   }
   
   // good to go, send manifest to client
-  //if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "11 i ", 0);
   send_file(socket, manifestPath);
   
@@ -155,7 +154,6 @@ void commit(packet * p, int socket ) {
   }
   
   // good to go, send manifest to client
-  //if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "31 i ", 0);
   send_file(socket, manifestPath);
   packet * e = parse_request(socket);
@@ -332,7 +330,6 @@ void currentversion(packet * p, int socket) {
   }
  
   // good to go, send manifest to client
-  //if (DEBUG) printf("about to send manifest\n");
   writen2(socket, "81 t ", 0);
   send_file(socket, manifestPath);
   return;
@@ -385,7 +382,6 @@ int handle_request(packet * p, int socket) {
       return;
     }
     lock(p->args[0]);
-    if (DEBUG) printf("locked %s\n", p->args[0]);
   }
   switch (p->code) {
   case '0':
@@ -500,7 +496,6 @@ int main(int argc, char* argv[]) {
   }
 
 
-  if (DEBUG) printf("Waiting for connections\n");
   // accept connections, multithreaded
   pthread_t tids[CONNECTION_QUEUE_SIZE];
   int i = 0;
