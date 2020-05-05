@@ -142,6 +142,7 @@ void send_file(int sockfd, char * filename) {
   writen(sockfd, " ", 1);
   int tarfd = open("./._wtf_tar", O_RDONLY);
   f2f(tarfd, sockfd, zip_size());
+  close(tarfd);
 }
 
 int writen(int fd, char * buf, int n) {
@@ -205,6 +206,7 @@ void send_proj(int sockfd, char * proj) {
   writen(sockfd, buf, strlen(buf));
   int tarfd = open("./._wtf_tar", O_RDONLY);
   f2f(tarfd, sockfd, zip_size());
+  close(tarfd);
 }
 
 //remove any existing tar/directory
@@ -540,6 +542,7 @@ int checkMA(char serverManifestPath[], char filePath[], int versionNo, char mani
       // if server file version is geq client file version, error
       if (serverFileVersionNo >= versionNo && strcmp(manifestHash, serverHash) != 0) {
 	printf("Error: Must sync with repository before committing changes\n");
+	close(serverManifest);
 	return -1;
       }
     } else { // this isn't the same file
