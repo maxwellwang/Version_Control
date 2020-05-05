@@ -221,14 +221,14 @@ void zip_add(char * path) {
 
 //create tar and remove dir
 void zip_tar() {
-  system("tar -zcf ._wtf_tar ._wtf_dir 2>/dev/null");
+  system("tar -pzcf ._wtf_tar ._wtf_dir 2>/dev/null");
   system("rm -r ._wtf_dir 2>/dev/null");
 }
 
 //untar and remove tar, leaving ._wtf_dir
 void zip_untar() {
   system("rm -r ._wtf_dir 2>/dev/null");
-  system("tar -xf ._wtf_tar 2>/dev/null");
+  system("tar -pxf ._wtf_tar 2>/dev/null");
   system("rm -r ._wtf_tar 2>/dev/null");
 }
 
