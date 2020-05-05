@@ -125,15 +125,16 @@ void upgrade(packet * p, int socket ) {
     tok = strtok(NULL, " \n");
     path = tok;
     tok = strtok(NULL, " \n");
-    version = atoi(tok);
-    tok = strtok(NULL, " \n");
     hash = tok;
     if (code != 'D') {
       zip_add2(path);
     }
   }
-  zip_tar();
   char buf[4096];
+  sprintf(buf, "%s/.Manifest", p->args[0]);
+  zip_add2(buf);
+  zip_tar();
+  
   sprintf(buf, "21 t %d ", zip_size());
   writen2(socket, buf, 0);
   int tarfd = open("./._wtf_tar", O_RDONLY);
