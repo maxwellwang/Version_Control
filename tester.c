@@ -222,6 +222,7 @@ int runAndCheck(char command[]) {
   		version[bytes++] = c;
   		read(serverManifest, &c, 1);
   	}
+  	close(serverManifest);
   	if (strcmp(version, argv[3]) == 0) return 1;
     break;
   default:
@@ -263,6 +264,7 @@ int main() {
 		    	printf("Command failed\n");
 		    	printf("Test %d failed\n", testCounter);
 		    	system("killall WTFserver 2>/dev/null");
+		    	close(file);
 		    	return EXIT_FAILURE;
 		    }
 		 }
