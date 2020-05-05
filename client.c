@@ -250,6 +250,7 @@ void update(int argc, char* argv[]) {
   } else { close(conflictFile); remove(conflictPath);}
   close(updateFile);
   close(conflictFile);
+  printf("Command .Update succeeded!");
   remove("./._wtf_dir/.Manifest");
   return;
 }
@@ -277,6 +278,7 @@ void upgrade(int argc, char* argv[]) {
   handle_response(sockfd);
   //update all files from ._wtf_dir, also has the manifest
   system2("cd ._wtf_dir && cp -rfp . ../", 0);
+  system2("rm -rf %s", path);
   close(sockfd);
 }
 
