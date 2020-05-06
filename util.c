@@ -315,8 +315,8 @@ void handle_response(int sock) {
     return;
   } else if (strcmp(p->args[0], "e") == 0) {
     printf("Command %s failed: project does not exist on server\n", cmd);
-  } else if (strcmp(p->args[0], "e") == 0) {
-    printf("Command %s failed: commit does not match server\n", cmd);
+  } else if (strcmp(p->args[0], "c") == 0) {
+    printf("Command %s failed: commit does not match server or does not exist\n", cmd);
   } else if (strcmp(p->args[0], "f") == 0) {
     printf("Command %s failed: project already exists on server\n", cmd);
   } else if (strcmp(p->args[0], "m") == 0) {
@@ -375,7 +375,7 @@ char * readFile(char * filename) {
 /*
 
 
-MANIFEST STUFF
+  MANIFEST STUFF
 
 
 */
@@ -479,12 +479,12 @@ int fileInManifest(char manifestPath[], char filePath[]) {
     memset(tempFilePath, 0, 4096);
     length = 0;
     while (c != ' ') {
-    	tempFilePath[length++] = c;
-    	read(manifest, &c, 1);
+      tempFilePath[length++] = c;
+      read(manifest, &c, 1);
     }
     if ( strcmp(tempFilePath, filePath) == 0 ) {
-    	close(manifest);
-    	return 1;
+      close(manifest);
+      return 1;
     }
     while (c != '\n') read(manifest, &c, 1);
     status = read(manifest, &c, 1); // if file is done, status will be 0
@@ -551,16 +551,16 @@ int checkMA(char serverManifestPath[], char filePath[], int versionNo, char mani
     status = read(serverManifest, &c, 1);
   }
   if (!fileInManifest(serverManifestPath, filePath)) { // add code detected
-  	code = 'A';
+    code = 'A';
   }
   if (code == '?') { // neither modify nor add
     return 0;
   }
   char commitWrite[4096];
   if (code == 'A') {
-  	sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, manifestHash);
+    sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, manifestHash);
   } else {
-  	sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, liveHash);
+    sprintf(commitWrite, "%c %s %d %s\n", code, filePath, versionNo + 1, liveHash);
   }
   writen(commitFile, commitWrite, strlen(commitWrite));
   printf("%c %s\n", code, filePath);

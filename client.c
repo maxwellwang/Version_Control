@@ -32,7 +32,7 @@ int c_connect() {
   }
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd == -1) {
-  	close(configfd);
+    close(configfd);
     printf("Error: Socket creation failed\n");
     exit(1);
   }
@@ -43,7 +43,7 @@ int c_connect() {
   close(configfd);
   struct hostent* result = gethostbyname(hostbuffer);
   if (result == NULL) {
-  	close(sockfd);
+    close(sockfd);
     herror("Error");
     exit(1);
   }
@@ -54,11 +54,11 @@ int c_connect() {
   bcopy((char*)result->h_addr, (char*)&serverAddress.sin_addr.s_addr, result->h_length);
   int status = connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
   while (status) {
-  	if (status < 0) {
-  		close(sockfd);
-  		perror("Error");
-  		exit(1);
-  	}
+    if (status < 0) {
+      close(sockfd);
+      perror("Error");
+      exit(1);
+    }
     printf("Connecting to server failed, attemping again in 3s\n");
     sleep(3);
     status = connect(sockfd, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
@@ -529,7 +529,7 @@ void create(int argc, char* argv[]) {
   char* projectname = parse_dir(argv[2]);
   DIR* dir = opendir(projectname);
   if (dir) {
-  	closedir(dir);
+    closedir(dir);
     printf("Error: %s project already exists on client\n", argv[2]);
     return;
   }
@@ -566,7 +566,7 @@ void add(int argc, char* argv[]) {
   sprintf(filePath, "./%s/%s", projectname, argv[3]);
   DIR* dir = opendir(projectname);
   if (dir) { // dir exists, add to manifest if file isn't there yet
-  	closedir(dir);
+    closedir(dir);
     if (access(filePath, F_OK) != -1) { // file exists, try to add to manifest
       int manifest = open(manifestPath, O_RDWR | O_APPEND);
       if (manifest == -1) {
@@ -632,72 +632,72 @@ void c_remove(int argc, char* argv[]) {
   sprintf(filePath, "./%s/%s", projectname, argv[3]);
   DIR* dir = opendir(projectname);
   if (dir) { // dir exists
-  		closedir(dir);
-      int manifest = open(manifestPath, O_RDONLY);
-      int temp = open(tempPath, O_WRONLY | O_CREAT, 00600); // create temp to write everything except deleted line
-      if (manifest == -1) {
-	printf("Error: Failed to open %s\n", manifestPath);
-	return;
-      }
-      if (temp == -1) {
+    closedir(dir);
+    int manifest = open(manifestPath, O_RDONLY);
+    int temp = open(tempPath, O_WRONLY | O_CREAT, 00600); // create temp to write everything except deleted line
+    if (manifest == -1) {
+      printf("Error: Failed to open %s\n", manifestPath);
+      return;
+    }
+    if (temp == -1) {
       close(manifest);
-	printf("Error: Failed to create %s\n", tempPath);
+      printf("Error: Failed to create %s\n", tempPath);
+      return;
+    }
+    char c = '?';
+    char filename[4096];
+    int length = 0;
+    int status = read(manifest, &c, 1);
+    while (c != '\n') {
+      writen(temp, &c, 1);
+      read(manifest, &c, 1);
+    }
+    writen(temp, "\n", 1);
+    status = read(manifest, &c, 1);
+    while (status > 0) {
+      // first read projectname and /
+      while (c != '/') read(manifest, &c, 1);
+      // now read in file name
+      memset(filename, 0, 4096);
+      length = 0;
+      read(manifest, &c, 1);
+      while (c != ' ') {
+	filename[length++] = c;
+	read(manifest, &c, 1);
+      }
+      if ( strcmp(filename, argv[3]) == 0 ) { // file found, skip it and print the rest, then replace manifest
+	while (c != '\n') read(manifest, &c, 1);
+	status = read(manifest, &c, 1);
+	while (status > 0) {
+	  writen(temp, &c, 1);
+	  status = read(manifest, &c, 1);
+	}
+	close(manifest);
+	close(temp);
+	remove(manifestPath);
+	rename(tempPath, manifestPath);
+	printf("Successfully removed file\n");
 	return;
       }
-      char c = '?';
-      char filename[4096];
-      int length = 0;
-      int status = read(manifest, &c, 1);
+      // not found, print the line and continue to next line
+      writen(temp, projectname, strlen(projectname));
+      writen(temp, "/", 1);
+      writen(temp, filename, strlen(filename));
+      writen(temp, " ", 1);
+      read(manifest, &c, 1);
       while (c != '\n') {
 	writen(temp, &c, 1);
 	read(manifest, &c, 1);
       }
       writen(temp, "\n", 1);
       status = read(manifest, &c, 1);
-      while (status > 0) {
-      	// first read projectname and /
-      	while (c != '/') read(manifest, &c, 1);
-      	// now read in file name
-      	memset(filename, 0, 4096);
-      	length = 0;
-      	read(manifest, &c, 1);
-      	while (c != ' ') {
-      		filename[length++] = c;
-      		read(manifest, &c, 1);
-      	}
-      	if ( strcmp(filename, argv[3]) == 0 ) { // file found, skip it and print the rest, then replace manifest
-      		while (c != '\n') read(manifest, &c, 1);
-      		status = read(manifest, &c, 1);
-      		while (status > 0) {
-      			writen(temp, &c, 1);
-      			status = read(manifest, &c, 1);
-      		}
-      		close(manifest);
-      		close(temp);
-      		remove(manifestPath);
-      		rename(tempPath, manifestPath);
-		printf("Successfully removed file\n");
-      		return;
-      	}
-      	// not found, print the line and continue to next line
-      	writen(temp, projectname, strlen(projectname));
-      	writen(temp, "/", 1);
-      	writen(temp, filename, strlen(filename));
-      	writen(temp, " ", 1);
-      	read(manifest, &c, 1);
-      	while (c != '\n') {
-      		writen(temp, &c, 1);
-      		read(manifest, &c, 1);
-      	}
-      	writen(temp, "\n", 1);
-      	status = read(manifest, &c, 1);
-      }
-      // finished reading manifest and file not found
-      close(manifest);
-      close(temp);
-      remove(tempPath);
-      printf("Error: %s is not in manifest\n", filePath);
-      return;
+    }
+    // finished reading manifest and file not found
+    close(manifest);
+    close(temp);
+    remove(tempPath);
+    printf("Error: %s is not in manifest\n", filePath);
+    return;
   } else if (errno == ENOENT) { // dir does not exit, command fails
     printf("Error: %s project does not exist on client\n", projectname);
     return;
@@ -727,22 +727,22 @@ void currentversion(int argc, char* argv[]) {
   }
   int status = read(manifest, &c, 1);
   while (status > 0) {
-  	while (c != ' ') { // reads file path
-  		printf("%c", c);
-  		read(manifest, &c, 1);
-  	}
-  	printf(" ");
-  	read(manifest, &c, 1);
-  	while (c != ' ') { // reads version No
-  		printf("%c", c);
-  		read(manifest, &c, 1);
-  	}
-  	printf("\n");
-  	read(manifest, &c, 1);
-  	while (c != '\n') { // skips hash
-  		read(manifest, &c, 1);
-  	}
-  	status = read(manifest, &c, 1);
+    while (c != ' ') { // reads file path
+      printf("%c", c);
+      read(manifest, &c, 1);
+    }
+    printf(" ");
+    read(manifest, &c, 1);
+    while (c != ' ') { // reads version No
+      printf("%c", c);
+      read(manifest, &c, 1);
+    }
+    printf("\n");
+    read(manifest, &c, 1);
+    while (c != '\n') { // skips hash
+      read(manifest, &c, 1);
+    }
+    status = read(manifest, &c, 1);
   }
   close(manifest);
   remove("./._wtf_dir/.Manifest");

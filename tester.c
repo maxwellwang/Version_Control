@@ -38,7 +38,7 @@ int codeToNum(char code[]) {
     return 12;
   } else {
     return -1; // shouldn't happen
-    }
+  }
 }
 
 int runAndCheck(char command[]) {
@@ -56,17 +56,17 @@ int runAndCheck(char command[]) {
   char * token = strtok(copy, " ");
   // loop through the string to extract all other tokens
   while( token != NULL ) {
-  	strcpy(argv[argc++], token);
-  	token = strtok(NULL, " ");
+    strcpy(argv[argc++], token);
+    token = strtok(NULL, " ");
   }
   char code3[4];
   memcpy(code3, argv[1], 3);
   code3[3] = '\0';
   int code = codeToNum(code3);
   if (code != 0) { // make sure projectname doesn't end in /
-  	if (argv[1][strlen(argv[1]) - 1] == '/') {
-  		argv[1][strlen(argv[1]) - 1] = 0;
-  	}
+    if (argv[1][strlen(argv[1]) - 1] == '/') {
+      argv[1][strlen(argv[1]) - 1] = 0;
+    }
   }
   char buffer[4096];
   char filePath[4096];
@@ -88,8 +88,8 @@ int runAndCheck(char command[]) {
     }
     break;
   case 1: //same checks as create
-  	sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
-  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
+    sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
     if (access(serverManifestPath, F_OK) != -1 && access(clientManifestPath, F_OK) != -1) {
       return 1;
     }
@@ -100,22 +100,22 @@ int runAndCheck(char command[]) {
     if (access(updatePath, F_OK) != -1 || access(conflictPath, F_OK) != -1) return 1;
     break;
   case 3: // upgrade, check if manifest versions match
-  	sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
-  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
+    sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
     clientManifest = open(clientManifestPath, O_RDONLY);
     serverManifest = open(serverManifestPath, O_RDONLY);
     // read versions from client and server
     bytes = 0;
     read(clientManifest, &c, 1);
     while (c != '\n') {
-    	version[bytes++] = c;
-    	read(clientManifest, &c, 1);
+      version[bytes++] = c;
+      read(clientManifest, &c, 1);
     }
     bytes = 0;
     read(serverManifest, &c, 1);
     while (c != '\n') {
-    	version[bytes++] = c;
-    	read(serverManifest, &c, 1);
+      version[bytes++] = c;
+      read(serverManifest, &c, 1);
     }
     close(clientManifest);
     close(serverManifest);
@@ -126,31 +126,31 @@ int runAndCheck(char command[]) {
     status = read(idFile, &c, 1);
     bytes = 0;
     while (status > 0) {
-    	clientID[bytes++] = c;
-    	status = read(idFile, &c, 1);
+      clientID[bytes++] = c;
+      status = read(idFile, &c, 1);
     }
     close(idFile);
-  	sprintf(serverCommitPath, "./serverDir/%s/.%sCommit", argv[2], clientID);
-  	sprintf(clientCommitPath, "./clientDir/%s/.%sCommit", argv[2], clientID);
+    sprintf(serverCommitPath, "./serverDir/%s/.%sCommit", argv[2], clientID);
+    sprintf(clientCommitPath, "./clientDir/%s/.%sCommit", argv[2], clientID);
     if (access(clientCommitPath, F_OK) != -1 && access(serverCommitPath, F_OK) != -1) return 1;
     break;
   case 5: // push, check if manifest versions match
     sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
-  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
     clientManifest = open(clientManifestPath, O_RDONLY);
     serverManifest = open(serverManifestPath, O_RDONLY);
     // read versions from client and server
     bytes = 0;
     read(clientManifest, &c, 1);
     while (c != '\n') {
-    	version[bytes++] = c;
-    	read(clientManifest, &c, 1);
+      version[bytes++] = c;
+      read(clientManifest, &c, 1);
     }
     bytes = 0;
     read(serverManifest, &c, 1);
     while (c != '\n') {
-    	version2[bytes++] = c;
-    	read(serverManifest, &c, 1);
+      version2[bytes++] = c;
+      read(serverManifest, &c, 1);
     }
     close(clientManifest);
     close(serverManifest);
@@ -164,17 +164,17 @@ int runAndCheck(char command[]) {
     }
     break;
   case 7: // destroy, make sure dir in server is gone
-  	sprintf(serverProjectPath, "./serverDir/%s", argv[2]);
-  	DIR* dir = opendir(serverProjectPath);
+    sprintf(serverProjectPath, "./serverDir/%s", argv[2]);
+    DIR* dir = opendir(serverProjectPath);
     if (dir) {
-    	closedir(dir);
+      closedir(dir);
       return 0;
     }
     closedir(dir);
     return 1;
   case 8: // add, check if client's manifest has the file
-  	sprintf(filePath, "%s/%s", argv[2], argv[3]);
-  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    sprintf(filePath, "%s/%s", argv[2], argv[3]);
+    sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
     clientManifest = open(clientManifestPath, O_RDONLY);
     bytes = 0;
     status = read(clientManifest, buffer + bytes, 1);
@@ -190,8 +190,8 @@ int runAndCheck(char command[]) {
     close(clientManifest);
     break;
   case 9: // remove, check if client manifest lacks the file
-  	sprintf(filePath, "%s/%s", argv[2], argv[3]);
-  	sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
+    sprintf(filePath, "%s/%s", argv[2], argv[3]);
+    sprintf(clientManifestPath, "./clientDir/%s/.Manifest", argv[2]);
     clientManifest = open(clientManifestPath, O_RDONLY);
     bytes = 0;
     status = read(clientManifest, buffer + bytes, 1);
@@ -207,23 +207,25 @@ int runAndCheck(char command[]) {
     close(clientManifest);
     return 1;
     break;
-  case 10: // currentversion, straightforward print
-  	return 1;
+  case 10: // currentversion, straightforward print, check |STDIN| for correct parsing\
+    if (strncmp(read(1, buf, 1), "2") != 0) return 0;
+    return 1;
     break;
-  case 11: // history, straightforward print
+  case 11: // history, straightforward print, also check |STDIN| for parsing\
+    if (strncmp(read(1, buf, 1), "1") != 0) return 0;
     return 1;
     break;
   case 12: //rollback, check if server manifest is the requested version
-  	sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
-  	serverManifest = open(serverManifestPath, O_RDONLY);
-  	read(serverManifest, &c, 1);
-  	bytes = 0;
-  	while (c != '\n') {
-  		version[bytes++] = c;
-  		read(serverManifest, &c, 1);
-  	}
-  	close(serverManifest);
-  	if (strcmp(version, argv[3]) == 0) return 1;
+    sprintf(serverManifestPath, "./serverDir/%s/.Manifest", argv[2]);
+    serverManifest = open(serverManifestPath, O_RDONLY);
+    read(serverManifest, &c, 1);
+    bytes = 0;
+    while (c != '\n') {
+      version[bytes++] = c;
+      read(serverManifest, &c, 1);
+    }
+    close(serverManifest);
+    if (strcmp(version, argv[3]) == 0) return 1;
     break;
   default:
     return 0; // shouldn't be here
@@ -240,36 +242,36 @@ int main() {
   int commandLength = 0;
   int numCommands;
   int status = read(file, &c, 1);
-  system("cd serverDir; ./WTFserver 8080 2>/dev/null &");
+  system("cd serverDir; ./WTFserver 7070 2>/dev/null &");
   while (status) {
     if (c == '$') {
-    	printf("Test %d:\n", testCounter);
-    	numCommands = 0;
-      	// parse commands and check results
-	  	while (c != '\n') {
-	  		numCommands++;
-		    // read until ; or \n to get command
-		    memset(command, 0, 4096);
-		    commandLength = 0;
-		    //if (numCommands > 1) read(file, &c, 1); // extra space
-	        read(file, &c, 1);
-	        while (c != '\n' && c != ';') {
-		      	command[commandLength++] = c;
-		      	read(file, &c, 1);
-		    }
-		    printf ("Command:%s\n", command);
-		    if (runAndCheck(command) == 1) {
-		    	printf("Command successful\n");
-		    } else {
-		    	printf("Command failed\n");
-		    	printf("Test %d failed\n", testCounter);
-		    	system("killall WTFserver 2>/dev/null");
-		    	close(file);
-		    	return EXIT_FAILURE;
-		    }
-		 }
-		 printf("Test %d passed\n\n\n", testCounter);
-      	 testCounter++;
+      printf("Test %d:\n", testCounter);
+      numCommands = 0;
+      // parse commands and check results
+      while (c != '\n') {
+	numCommands++;
+	// read until ; or \n to get command
+	memset(command, 0, 4096);
+	commandLength = 0;
+	//if (numCommands > 1) read(file, &c, 1); // extra space
+	read(file, &c, 1);
+	while (c != '\n' && c != ';') {
+	  command[commandLength++] = c;
+	  read(file, &c, 1);
+	}
+	printf ("Command:%s\n", command);
+	if (runAndCheck(command) == 1) {
+	  printf("Command successful\n");
+	} else {
+	  printf("Command failed\n");
+	  printf("Test %d failed\n", testCounter);
+	  system("killall WTFserver 2>/dev/null");
+	  close(file);
+	  return EXIT_FAILURE;
+	}
+      }
+      printf("Test %d passed\n\n\n", testCounter);
+      testCounter++;
     }
     status = read(file, &c, 1);
   }

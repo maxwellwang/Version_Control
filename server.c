@@ -161,7 +161,7 @@ void commit(packet * p, int socket ) {
     return;
   }
   if (strcmp(e->args[0], "z") == 0) { // manifest versions don't match, stop
-  	return;
+    return;
   }
   system3("cp ./._wtf_dir/.%sCommit %s",e->args[1], projectname);
   writen2(socket, "31 t 0 ", 0);
@@ -175,6 +175,11 @@ void push(packet * p, int socket ) {
   char clientPath[4096];
   sprintf(serverPath, "./%s/.%sCommit", p->args[0], p->args[1]);
   sprintf(clientPath, "./._wtf_dir/.%sCommit", p->args[1]);
+  if (access(clientPath, F_OK) == -1) {
+    writen2(socket, "51 e 0 ", 0);
+    return;
+  }
+  
   char * serverC = readFile(serverPath);
   char * clientC = readFile(clientPath);
   int b = strcmp(serverC, clientC);
@@ -446,12 +451,12 @@ int main(int argc, char* argv[]) {
   struct dirent* currentDir = readdir(dir);
   while (currentDir) {
     if (currentDir->d_type == DT_DIR) {
-		if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
-		  printf("Mutex init has failed\n");
-		  return 1;
-		}
-		strcpy(projectnames[mutexCounter], currentDir->d_name);
-		mutexCounter++;
+      if (pthread_mutex_init(mutexes + mutexCounter, NULL) != 0) {
+	printf("Mutex init has failed\n");
+	return 1;
+      }
+      strcpy(projectnames[mutexCounter], currentDir->d_name);
+      mutexCounter++;
     }
     currentDir = readdir(dir);
   }
