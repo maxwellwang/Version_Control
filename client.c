@@ -260,7 +260,7 @@ void update(int argc, char* argv[]) {
   } else { close(conflictFile); remove(conflictPath);}
   close(updateFile);
   close(conflictFile);
-  printf("Command .Update succeeded!");
+  printf("Command .Update succeeded!\n");
   remove("./._wtf_dir/.Manifest");
   return;
 }
