@@ -175,7 +175,7 @@ void push(packet * p, int socket ) {
   char clientPath[4096];
   sprintf(serverPath, "./%s/.%sCommit", p->args[0], p->args[1]);
   sprintf(clientPath, "./._wtf_dir/.%sCommit", p->args[1]);
-  if (access(clientPath, F_OK) == -1) {
+  if (access(serverPath, F_OK) == -1 || access(clientPath, F_OK) == -1) {
     writen2(socket, "51 e 0 ", 0);
     return;
   }
