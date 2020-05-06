@@ -192,7 +192,12 @@ void push(packet * p, int socket ) {
   } else {
     writen2(socket, "51 i 0 ", 0);
   }
-
+  //recieve files needed (add and modified)
+  packet * p2 = parse_request(socket);
+  if (strcmp(p2->args[0], "fnf") == 0) {
+    return;
+  }
+  
   //get manifest version to store
   char manPath[4096];
   sprintf(manPath, "%s/.Manifest", p->args[0]);
@@ -202,9 +207,6 @@ void push(packet * p, int socket ) {
   //move to backup dir. if push ultimately fails, restore it
   system3("tar -zcf %s %s", manPath, p->args[0]);
   
-
-  //recieve files needed (add and modified)
-  packet * p2 = parse_request(socket);
   //update all files from ._wtf_dir
   system2("cd ._wtf_dir && cp -rfp . ../", 0);
   //delete deleted files

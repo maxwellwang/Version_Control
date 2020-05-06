@@ -496,10 +496,29 @@ void push(int argc, char* argv[]) {
     tok = strtok(NULL, " \n");
     hash = tok;
     //    printf("C[%c]P[%s]V[%d]H[%s]\n", code, path, version, hash);
-    zip_add2(path);
+
     //ensure permissions allow us to delete it
     if (code == 'D') {
+      int c = 0;
+      if(access(path, F_OK) == -1) {
+	c = 1;
+	system2("touch %s", path);
+      }
+      zip_add2(path);
       system2("chmod 704 ./._wtf_dir/%s", path);
+      if (c == 1) {
+	system2("rm %s", path);
+      }
+    } else {
+      if(access(path, F_OK) == -1) {
+	printf("Error: file %s could not be found/accessed\n", path);
+	writen2(sock, "51 fnf 0 ", 0);
+	close(sock);
+	free(commit);
+	free(id);
+	return;
+      }
+      zip_add2(path);
     }
   }
   zip_tar();
